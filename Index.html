@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mantra Tracker — Darshan</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F7F9FC;--surface:#FFFFFF;--border:#DDE3ED;--border-strong:#C4CEDF;
+  --text:#1A2333;--text2:#4A5568;--text3:#8492A6;--accent:#2563EB;
+  --gold:#b8860b;--gold-l:#d4a017;--gold-bg:#fff8e7;--gold-border:#f5d87a;
+  --pur:#5b2d8e;--pur-l:#7b4db4;--pur-bg:#f5f0ff;--pur-border:#d0b8f0;
+}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+.app{min-height:100vh;background:var(--bg)}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 2.5rem}
+.topbar-inner{display:flex;align-items:center;justify-content:space-between;height:64px;flex-wrap:wrap;gap:8px}
+.topbar-brand{display:flex;align-items:center;gap:12px}
+.brand-mark{width:36px;height:36px;background:#1A2333;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.brand-name{font-size:16px;font-weight:600;color:var(--text)}
+.brand-sub{font-size:12px;color:var(--text3);margin-left:10px;padding-left:10px;border-left:1px solid var(--border)}
+.topbar-actions{display:flex;align-items:center;gap:8px}
+.btn-export{font-size:12px;padding:5px 14px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;font-family:inherit}
+.btn-export:hover{background:#F8FAFC;border-color:var(--border-strong)}
+.btn-import{font-size:12px;padding:5px 14px;border-radius:7px;border:1px solid #BBF7D0;background:#F0FDF4;color:#15803D;cursor:pointer;font-family:inherit}
+.btn-import:hover{background:#DCFCE7}
+.nav-tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 1.5rem;gap:2px;overflow-x:auto}
+.nav-btn{font-size:13px;padding:0 16px;height:40px;border:none;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px;font-weight:400;white-space:nowrap}
+.nav-btn:hover{color:var(--text)}
+.nav-btn.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
+.page{display:none;padding:1.5rem}.page.active{display:block}
+.page-title{font-size:20px;font-weight:500;color:var(--text);margin-bottom:12px}
+.page-head-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:4px}
+
+.date-nav{display:flex;align-items:center;gap:8px;margin-bottom:1.2rem;position:relative;width:fit-content}
+.arr-btn{width:32px;height:44px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:inherit}
+.arr-btn:hover{background:#F8FAFC;border-color:var(--border-strong);color:var(--text)}
+.arr-btn:disabled{opacity:0.3;cursor:not-allowed}
+.date-display-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 22px;cursor:pointer;min-width:220px;font-family:inherit;position:relative}
+.date-display-btn:hover{border-color:var(--border-strong);background:#FAFBFC}
+.date-display-btn.open{border-color:var(--accent)}
+.wk-range{font-size:14.5px;font-weight:500;color:var(--text)}
+.ddb-arrow{font-size:10px;color:var(--text3);transition:transform 0.15s}
+.ddb-arrow.open{transform:rotate(180deg)}
+.today-chip{font-size:11px;padding:3px 10px;border-radius:16px;border:1px solid var(--accent);color:var(--accent);background:transparent;cursor:pointer;font-family:inherit;white-space:nowrap;height:28px}
+.today-chip:hover{background:#EBF2FF}
+
+.cal-popup{display:none;position:absolute;top:52px;left:40px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;z-index:200;width:280px;box-shadow:0 8px 24px rgba(0,0,0,0.10)}
+.cal-popup.open{display:block}
+.cal-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cal-month-nav{width:28px;height:28px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text2);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.cal-month-nav:hover{background:#F8FAFC;border-color:var(--border-strong)}
+.cal-month-nav:disabled{opacity:0.3;cursor:not-allowed}
+.cal-month-title{font-size:13px;font-weight:500;color:var(--text)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:6px}
+.cal-dow{font-size:10px;font-weight:500;color:var(--text3);text-align:center;padding:2px 0 4px;text-transform:uppercase;letter-spacing:0.04em}
+.cal-cell{font-size:12px;color:var(--text2);text-align:center;padding:5px 3px;border-radius:7px;cursor:pointer;border:none;background:transparent;width:100%;font-family:inherit}
+.cal-cell:hover:not(:disabled):not(.empty){background:#EBF2FF;color:var(--accent)}
+.cal-cell.is-today{font-weight:700;color:var(--accent);border:1.5px solid var(--accent)}
+.cal-cell.is-selected{background:#1A2333;color:#FFF;font-weight:500}
+.cal-cell.is-selected.is-today{background:var(--accent);border-color:var(--accent)}
+.cal-cell:disabled{color:#D1D5DB;cursor:not-allowed}
+.cal-cell.empty{cursor:default}
+.cal-footer{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:center}
+.cal-today-btn{font-size:12px;padding:4px 18px;border-radius:7px;border:1px solid var(--accent);color:var(--accent);background:transparent;cursor:pointer;font-family:inherit}
+.cal-today-btn:hover{background:#EBF2FF}
+
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.5rem}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem 1.1rem}
+.stat-card.blue{border-top:3px solid #2563EB}
+.stat-card.green{border-top:3px solid #15803D}
+.stat-card.gold{border-top:3px solid #D97706}
+.stat-card.purple{border-top:3px solid #7b4db4}
+.stat-lbl{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px}
+.stat-num{font-size:24px;font-weight:500;color:var(--text);line-height:1}
+.section-hdr{display:flex;align-items:center;gap:8px;margin:1.2rem 0 0.75rem}
+.section-dot{width:10px;height:10px;border-radius:50%}
+.section-label{font-size:13px;font-weight:500;color:var(--text);text-transform:uppercase;letter-spacing:0.06em}
+
+/* weekly grid */
+.wk-wrap{border:1px solid var(--border);border-radius:10px;overflow-x:auto}
+.wk-table{width:100%;border-collapse:collapse;font-size:13px;background:var(--surface);min-width:920px}
+.wk-table th{background:#F8FAFC;color:var(--text3);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;padding:8px 6px;text-align:center;border-bottom:1px solid var(--border)}
+.wk-mantra-h{text-align:left!important;padding-left:14px!important;min-width:230px}
+.wk-date-num{font-size:13px;font-weight:700;color:var(--text);display:block;margin-top:2px;text-transform:none}
+.wk-day-h.is-today-col{color:var(--accent)}
+.wk-total-h{min-width:64px}
+.wk-mantra-cell{position:sticky;left:0;background:var(--surface);padding:10px 14px;border-bottom:1px solid #F1F5F9;min-width:230px;z-index:1}
+.wk-table tbody tr:hover .wk-mantra-cell{background:#FAFBFC}
+.wk-m-name{font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:2px}
+.wk-m-mantra{font-size:10.5px;color:var(--text3);font-style:italic;margin-bottom:5px;line-height:1.4}
+.wk-m-meta{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.wk-m-tag{font-size:10px;color:var(--text3);background:#F8FAFC;border:1px solid var(--border);border-radius:10px;padding:1px 7px;white-space:nowrap}
+.badge{font-size:11px;padding:2px 8px;border-radius:20px;white-space:nowrap;font-weight:500}
+.wk-cell{text-align:center;padding:6px 4px;border-bottom:1px solid #F1F5F9;min-width:72px}
+.wk-cell.is-ruling{background:#FAFBFC}
+.wk-cell.is-future{opacity:0.35}
+.wk-cellwrap{display:flex;flex-direction:column;align-items:center;gap:4px}
+.wk-cellwrap input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#15803D}
+.wk-num{width:46px;border:1px solid var(--border);border-radius:5px;padding:2px 3px;font-size:11px;text-align:center;color:var(--text);background:var(--surface);font-family:inherit}
+.wk-num:focus{outline:none;border-color:var(--accent)}
+.wk-total-cell{text-align:center;font-weight:700;color:var(--text);border-bottom:1px solid #F1F5F9;font-size:12.5px}
+.wk-group-row td{background:#F8FAFC;font-size:10.5px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.06em;padding:6px 12px;border-bottom:1px solid var(--border)}
+.wk-handle-h{width:26px;min-width:26px}
+.wk-handle{width:26px;min-width:26px;text-align:center;color:var(--text3);cursor:grab;padding:10px 2px;border-bottom:1px solid #F1F5F9;font-size:14px;user-select:none;background:var(--surface)}
+.wk-handle:active{cursor:grabbing}
+.wk-table tbody tr.drag-over td{background:#EFF6FF!important}
+.wk-table tbody tr.dragging td{opacity:0.4}
+
+.p-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.1rem;margin-bottom:10px;display:flex;gap:10px;cursor:default}
+.p-card.drag-over{border-color:var(--accent);box-shadow:0 0 0 2px rgba(37,99,235,0.15)}
+.p-card.dragging{opacity:0.4}
+.p-card:hover{border-color:var(--border-strong)}
+.p-handle{flex:none;width:20px;padding-top:2px;color:var(--text3);cursor:grab;font-size:15px;letter-spacing:-1px;text-align:center;user-select:none}
+.p-handle:active{cursor:grabbing}
+.p-body{flex:1;min-width:0}
+.p-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;gap:8px;flex-wrap:wrap}
+.p-title{font-size:15px;font-weight:700;color:var(--text)}
+.p-mantra{font-size:12px;color:var(--text3);font-style:italic;margin-bottom:8px}
+.p-meta{display:flex;gap:16px;margin-bottom:8px;flex-wrap:wrap}
+.p-meta-item{font-size:12px;color:var(--text3)}
+.p-meta-item strong{font-weight:500;color:var(--text2)}
+.p-prog{height:7px;background:#F1F5F9;border-radius:4px;margin-bottom:10px;overflow:hidden}
+.p-fill{height:100%;border-radius:4px;transition:width 0.3s,background 0.3s}
+.p-after{font-size:11px;color:var(--text3);margin-top:6px;padding-top:6px;border-top:1px solid var(--border)}
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem}
+.filter-btn{font-size:12px;padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;font-family:inherit}
+.filter-btn.active{background:#1A2333;color:#FFF;border-color:#1A2333}
+.tbl-wrap{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:1.5rem}
+.mtbl{width:100%;border-collapse:collapse;font-size:13px;background:var(--surface)}
+.mtbl th{background:#F8FAFC;color:var(--text3);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;padding:9px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.mtbl td{padding:9px 12px;border-bottom:1px solid #F1F5F9;color:var(--text);vertical-align:middle;font-weight:700}
+.mtbl tr:last-child td{border-bottom:none}
+.mtbl tbody tr:hover td{background:#FAFBFC}
+.group-row td{background:#F8FAFC;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.06em;padding:6px 12px;border-bottom:1px solid var(--border)}
+.total-row td{background:#EFF6FF;font-weight:700;color:#1E40AF}
+.grand-row td{background:#1A2333;color:#FFF;font-weight:700}
+.mini-bar{width:80px;height:6px;background:#F1F5F9;border-radius:3px;display:inline-block;vertical-align:middle;overflow:hidden}
+.mini-fill{height:100%;border-radius:3px}
+.tbl-actions{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.inp{width:54px;border:1px solid var(--border);border-radius:6px;padding:4px 7px;font-size:13px;color:var(--text);background:var(--surface);font-family:inherit}
+.inp:focus{outline:none;border-color:var(--accent)}
+.btn-primary{background:#1A2333;color:#FFF;border:none;font-size:13px;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:inherit}
+.btn-primary:hover{background:#2D3748}
+.btn-sec{background:var(--surface);color:var(--text2);border:1px solid var(--border);font-size:12px;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:inherit}
+.btn-sec:hover{background:#F8FAFC}
+.btn-day-reset{background:none;border:1px solid #FDE68A;color:#92400E;font-size:11px;cursor:pointer;padding:3px 8px;border-radius:6px;font-family:inherit;white-space:nowrap}
+.btn-day-reset:hover{background:#FFFBEB}
+.btn-master-reset{background:none;border:1px solid #FECDD3;color:#9F1239;font-size:11px;cursor:pointer;padding:3px 8px;border-radius:6px;font-family:inherit;white-space:nowrap}
+.btn-master-reset:hover{background:#FFF1F2}
+
+/* monthly */
+.monthly-grid{display:flex;flex-direction:column;gap:16px;margin-top:4px}
+.m-ritual-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:row}
+.m-ritual-card:hover{border-color:var(--border-strong)}
+.m-ritual-header{padding:20px 20px;border-right:1px solid var(--border);min-width:220px;max-width:240px;flex-shrink:0;display:flex;flex-direction:column;justify-content:flex-start}
+.m-ritual-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px;line-height:1.4}
+.m-ritual-sub{font-size:11px;color:var(--text3)}
+.m-ritual-body{padding:20px 22px;flex:1;min-width:0}
+.m-mantra-block{background:var(--pur-bg);border:1px solid var(--pur-border);border-radius:8px;padding:10px 14px;margin-bottom:12px}
+.m-mantra-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--pur-l);margin-bottom:4px}
+.m-mantra-text{font-size:13px;font-style:italic;color:var(--pur);font-weight:600;line-height:1.6}
+.m-mantra-devanagari{font-size:12px;color:var(--pur-l);margin-top:2px;font-style:normal}
+.m-count-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.m-count-target{font-size:12px;color:var(--text3)}
+.m-count-target strong{color:var(--text);font-size:14px}
+.m-count-done{font-size:22px;font-weight:700;color:var(--text)}
+.m-count-sep{font-size:14px;color:var(--text3)}
+.m-prog{height:6px;background:#F1F5F9;border-radius:3px;margin-bottom:10px;overflow:hidden}
+.m-prog-fill{height:100%;border-radius:3px;transition:width 0.3s}
+.m-btn-row{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+.m-note{font-size:11px;color:var(--text3);line-height:1.6;border-top:1px solid var(--border);padding-top:10px;margin-top:4px}
+.m-note li{margin-bottom:3px}
+.month-banner{background:var(--pur-bg);border:1px solid var(--pur-border);border-radius:8px;padding:10px 16px;font-size:12px;color:var(--pur);margin-bottom:1.2rem}
+.month-select-row{display:flex;align-items:center;gap:10px;margin-bottom:1.4rem;flex-wrap:wrap}
+.month-select-label{font-size:13px;color:var(--text2);font-weight:500}
+.month-sel{border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:13px;color:var(--text);background:var(--surface);font-family:inherit;cursor:pointer}
+.month-sel:focus{outline:none;border-color:var(--accent)}
+.m-occasion-tag{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding:2px 8px;border-radius:10px;margin-bottom:8px}
+
+/* modals */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(26,35,51,0.45);z-index:500;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--surface);border-radius:14px;padding:24px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.25)}
+.modal-box h3{font-size:17px;font-weight:600;margin-bottom:4px;color:var(--text)}
+.modal-sub{font-size:12px;color:var(--text3);margin-bottom:16px;line-height:1.5}
+.mform-row{margin-bottom:12px}
+.mform-row label{display:block;font-size:12px;color:var(--text2);font-weight:500;margin-bottom:5px}
+.mform-row input[type=text],.mform-row input[type=number],.mform-row select,.mform-row textarea{
+  width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;
+  font-family:inherit;color:var(--text);background:var(--surface);
+}
+.mform-row input:focus,.mform-row select:focus,.mform-row textarea:focus{outline:none;border-color:var(--accent)}
+.mform-row textarea{resize:vertical;min-height:44px}
+.mform-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.mform-hint{font-size:11px;color:var(--text3);margin-top:14px;padding-top:12px;border-top:1px solid var(--border);line-height:1.5}
+</style>
+</head>
+<body>
+<div class="app">
+<h2 style="position:absolute;left:-9999px">Darshan Vedic Mantra Tracker</h2>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="topbar-brand">
+      <div class="brand-mark">
+        <svg width="22" height="22" viewBox="0 0 100 100"><text x="50" y="72" font-size="72" text-anchor="middle" fill="#F7C948" font-family="serif">&#x0950;</text></svg>
+      </div>
+      <span class="brand-name">Mantra Tracker</span>
+      <span class="brand-sub">Darshan · Sagittarius Lagna · Hubli, 1985</span>
+    </div>
+    <div class="topbar-actions">
+      <span style="font-size:12px;color:var(--text3)" id="topbar-date"></span>
+      <span id="sync-badge" style="font-size:11px;padding:3px 10px;border-radius:12px;">⟳ loading...</span>
+      <button class="btn-export" onclick="exportData()">&#8595; Export</button>
+      <button class="btn-import" onclick="document.getElementById('import-input').click()">&#8593; Import</button>
+      <input type="file" id="import-input" accept=".json" style="display:none" onchange="importData(event)"/>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Add / edit mantra modal ═══ -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal-box">
+    <h3 id="am-modal-title">Add a mantra</h3>
+    <div class="modal-sub" id="am-modal-sub">Appears immediately in the weekly grid and Master Tracker — and in Purashcharana too, if you set a target below.</div>
+    <div class="mform-row"><label>Name *</label><input type="text" id="am-name" placeholder="e.g. Durga Chalisa"></div>
+    <div class="mform-row"><label>Mantra / text</label><textarea id="am-text" placeholder="e.g. Om Dum Durgayei Namaha"></textarea></div>
+    <div class="mform-row"><label>Deity / Planet *</label><input type="text" id="am-planet" placeholder="e.g. Durga"></div>
+    <div class="mform-row"><label>Daily target *</label><input type="number" id="am-daily" min="1" value="108"></div>
+    <div class="mform-row"><label>Ruling day</label>
+      <select id="am-days">
+        <option value="All days">All days</option>
+        <option>Sunday</option><option>Monday</option><option>Tuesday</option><option>Wednesday</option>
+        <option>Thursday</option><option>Friday</option><option>Saturday</option>
+      </select>
+    </div>
+    <div class="mform-row"><label>Note (optional)</label><input type="text" id="am-note" placeholder="e.g. Chant during Durga hora"></div>
+    <div class="mform-row" id="am-purash-row"><label>Purashcharana target (optional)</label><input type="number" id="am-purash" min="0" placeholder="Leave blank to skip"></div>
+    <div class="mform-actions">
+      <button class="btn-sec" onclick="closeAddMantra()">Cancel</button>
+      <button class="btn-primary" onclick="saveAddMantra()" id="am-save">Add mantra</button>
+    </div>
+    <div class="mform-hint">Drag the ⠿ handle on any row in the weekly grid to reorder mantras. Order is saved automatically.</div>
+  </div>
+</div>
+
+<!-- ═══ Add / edit Purashcharana target modal (shared by Purashcharana + Weekly Special) ═══ -->
+<div class="modal-overlay" id="purashModal">
+  <div class="modal-box">
+    <h3 id="pm-title">Add Purashcharana target</h3>
+    <div class="modal-sub" id="pm-sub">Add a standalone repetition goal.</div>
+    <div class="mform-row"><label>Deity / Planet *</label><input type="text" id="pm-planet" placeholder="e.g. Durga"></div>
+    <div class="mform-row"><label>Mantra / text</label><textarea id="pm-text" placeholder="e.g. Om Dum Durgayei Namaha"></textarea></div>
+    <div class="mform-row"><label>Target *</label><input type="number" id="pm-target" min="1" placeholder="e.g. 12500"></div>
+    <div class="mform-row"><label>Day</label>
+      <select id="pm-day">
+        <option value="All days">All days</option>
+        <option>Sunday</option><option>Monday</option><option>Tuesday</option><option>Wednesday</option>
+        <option>Thursday</option><option>Friday</option><option>Saturday</option>
+      </select>
+    </div>
+    <div class="mform-row"><label>Deadline (optional)</label><input type="text" id="pm-deadline" placeholder="e.g. Ongoing / By Dec 2026"></div>
+    <div class="mform-row"><label>After completion (optional)</label><input type="text" id="pm-after" placeholder="e.g. Revert to daily practice"></div>
+    <div class="mform-actions">
+      <button class="btn-sec" onclick="closePurashModal()">Cancel</button>
+      <button class="btn-primary" onclick="savePurashModal()" id="pm-save">Save target</button>
+    </div>
+    <div class="mform-hint">Drag the ⠿ handle on any card to reorder priority. Order is saved automatically.</div>
+  </div>
+</div>
+
+<div class="nav-tabs">
+  <button class="nav-btn active" data-page="daily" onclick="showPage('daily')">Daily dashboard</button>
+  <button class="nav-btn" data-page="monthly" onclick="showPage('monthly')">Monthly rituals</button>
+  <button class="nav-btn" data-page="purash" onclick="showPage('purash')">Purashcharana</button>
+  <button class="nav-btn" data-page="special" onclick="showPage('special')">Weekly special</button>
+  <button class="nav-btn" data-page="master" onclick="showPage('master')">Master tracker</button>
+</div>
+
+<!-- ═══ DAILY (weekly grid) ═══ -->
+<div id="page-daily" class="page active">
+  <div class="page-head-row">
+    <div class="page-title" style="margin-bottom:0">Daily dashboard</div>
+    <button class="btn-primary" onclick="openAddMantra()">+ Add mantra</button>
+  </div>
+  <div style="font-size:13px;color:var(--text3);margin-bottom:1.2rem">Every mantra, every day of the week, one view. Use the arrows to move between weeks — nothing is hidden by day anymore.</div>
+
+  <div class="date-nav" id="date-nav">
+    <button class="arr-btn" id="btn-prev" onclick="changeWeek(-1)">&#8592;</button>
+    <button class="date-display-btn" id="date-display-btn" onclick="toggleCal()">
+      <span class="wk-range" id="wk-range">—</span>
+      <span class="ddb-arrow" id="ddb-arrow">&#9660;</span>
+    </button>
+    <div class="cal-popup" id="cal-popup">
+      <div class="cal-top">
+        <button class="cal-month-nav" id="cal-prev" onclick="calShiftMonth(-1)">&#8592;</button>
+        <span class="cal-month-title" id="cal-month-title"></span>
+        <button class="cal-month-nav" id="cal-next" onclick="calShiftMonth(1)">&#8594;</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-footer"><button class="cal-today-btn" onclick="goTodayWeek()">Jump to this week</button></div>
+    </div>
+    <button class="arr-btn" id="btn-next" onclick="changeWeek(1)">&#8594;</button>
+    <button class="today-chip" id="btn-today" onclick="goTodayWeek()" style="display:none">&#8617; This week</button>
+  </div>
+
+  <div class="stats-row" id="d-stats"></div>
+
+  <div class="wk-wrap">
+    <table class="wk-table">
+      <thead><tr id="wk-thead"></tr></thead>
+      <tbody id="wk-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ MONTHLY RITUALS ═══ -->
+<div id="page-monthly" class="page">
+  <div class="page-title">Monthly rituals</div>
+  <div class="month-banner">these two rituals must happen every single month — non-negotiable for your chart (Amavasya birth + Moon gandanta + 8th lord MD).</div>
+
+  <div class="month-select-row">
+    <span class="month-select-label">Month:</span>
+    <select class="month-sel" id="month-sel" onchange="renderMonthly()"></select>
+    <span class="month-select-label">Year:</span>
+    <select class="month-sel" id="year-sel" onchange="renderMonthly()"></select>
+  </div>
+
+  <div id="monthly-grid" class="monthly-grid"></div>
+
+  <div class="section-hdr" style="margin-top:1.8rem"><div class="section-dot" style="background:#8492A6"></div><span class="section-label">This month's mantra totals</span></div>
+  <div class="tbl-wrap">
+    <table class="mtbl">
+      <thead><tr><th>Mantra</th><th>Planet / Deity</th><th>Days logged</th><th>Total count</th></tr></thead>
+      <tbody id="monthly-mantra-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ PURASHCHARANA ═══ -->
+<div id="page-purash" class="page">
+  <div class="page-head-row">
+    <div class="page-title" style="margin-bottom:0">Purashcharana targets</div>
+    <button class="btn-primary" onclick="openPurashModal('purash')">+ Add target</button>
+  </div>
+  <div style="font-size:13px;color:var(--text3);margin-bottom:1.2rem" id="purash-sub">All active — sequential order recommended</div>
+  <div class="stats-row" id="p-stats"></div>
+  <div id="purash-list"></div>
+</div>
+
+<!-- ═══ WEEKLY SPECIAL ═══ -->
+<div id="page-special" class="page">
+  <div class="page-head-row">
+    <div class="page-title" style="margin-bottom:0">Weekly special</div>
+    <button class="btn-primary" onclick="openPurashModal('special')">+ Add target</button>
+  </div>
+  <div style="font-size:13px;color:var(--text3);margin-bottom:1.2rem">Vishnu Sahasranama, Nakshatra Devata and Hare Krishna Mahamantra Purashcharana — kept separate since they run on their own "every day" cadence rather than one ruling weekday.</div>
+  <div class="stats-row" id="s-stats"></div>
+  <div id="special-list"></div>
+</div>
+
+<!-- ═══ MASTER ═══ -->
+<div id="page-master" class="page">
+  <div class="page-title">Master tracker</div>
+  <div style="font-size:13px;color:var(--text3);margin-bottom:1.2rem">Cumulative all-time counts. Reset here permanently wipes all entries for that mantra.</div>
+  <div class="stats-row" id="m-stats"></div>
+  <div class="filter-row" id="planet-filters"></div>
+  <div class="tbl-wrap">
+    <table class="mtbl">
+      <thead><tr>
+        <th>Mantra</th><th>Planet</th><th>Day</th><th>Daily target</th><th>Total count</th><th>Progress</th><th>Add / Reset all-time</th>
+      </tr></thead>
+      <tbody id="master-tbody"></tbody>
+    </table>
+  </div>
+</div>
+</div>
+
+<script>
+const DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DOW=['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+const TODAY=new Date();TODAY.setHours(0,0,0,0);
+const TODAY_KEY = TODAY.getFullYear() + '-' +
+  String(TODAY.getMonth() + 1).padStart(2, '0') + '-' +
+  String(TODAY.getDate()).padStart(2, '0');
+document.getElementById('topbar-date').textContent=TODAY.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+function dk(d) {
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+}
+function dn(d){return DAYS[d.getDay()];}
+function addDays(d,n){const nd=new Date(d);nd.setDate(nd.getDate()+n);return nd;}
+function startOfWeek(d){const nd=new Date(d);nd.setHours(0,0,0,0);nd.setDate(nd.getDate()-nd.getDay());return nd;}
+function ordinal(n){const s=['th','st','nd','rd'];const v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
+
+let weekAnchor=startOfWeek(TODAY);
+let calYear=TODAY.getFullYear();
+let calMonthIdx=TODAY.getMonth();
+let calOpen=false;
+
+// populate month/year selectors
+(function(){
+  const ms=document.getElementById('month-sel');
+  MONTHS.forEach((m,i)=>{const o=document.createElement('option');o.value=i;o.textContent=m;if(i===TODAY.getMonth())o.selected=true;ms.appendChild(o);});
+  const ys=document.getElementById('year-sel');
+  for(let y=TODAY.getFullYear()-1;y<=TODAY.getFullYear()+2;y++){const o=document.createElement('option');o.value=y;o.textContent=y;if(y===TODAY.getFullYear())o.selected=true;ys.appendChild(o);}
+})();
+
+const PT={
+  Sun:{bg:'#FFFBEB',border:'#FDE68A',text:'#92400E'},Moon:{bg:'#EFF6FF',border:'#BFDBFE',text:'#1E40AF'},
+  Mars:{bg:'#FFF1F2',border:'#FECDD3',text:'#9F1239'},Mercury:{bg:'#F0FDF4',border:'#BBF7D0',text:'#14532D'},
+  Jupiter:{bg:'#FFFBEB',border:'#FDE68A',text:'#78350F'},Venus:{bg:'#FDF4FF',border:'#E9D5FF',text:'#581C87'},
+  Saturn:{bg:'#F5F3FF',border:'#DDD6FE',text:'#3730A3'},Ganesha:{bg:'#FFF7ED',border:'#FED7AA',text:'#7C2D12'},
+  Hanuman:{bg:'#FFF7ED',border:'#FED7AA',text:'#9A3412'},Rahu:{bg:'#FAF5FF',border:'#DDD6FE',text:'#4C1D95'},
+  Pitru:{bg:'#F5F3FF',border:'#DDD6FE',text:'#3730A3'},
+  Vishnu:{bg:'#EFF6FF',border:'#BFDBFE',text:'#1E3A8A'},
+  'Nakshatra Devata':{bg:'#ECFEFF',border:'#A5F3FC',text:'#155E75'},
+  Krishna:{bg:'#FEF9C3',border:'#FDE047',text:'#854D0E'},
+};
+function pt(p){return PT[p]||{bg:'#F8FAFC',border:'#CBD5E1',text:'#334155'};}
+function dpc(p){if(p>=100)return '#15803D';if(p>=75)return '#22C55E';if(p>=25)return '#4ADE80';return '#86EFAC';}
+function mpc(p){if(p>=100)return '#15803D';if(p>=90)return '#4ADE80';if(p>=75)return '#93C5FD';if(p>=50)return '#3B82F6';return '#EAB308';}
+
+// Default seed — only used to initialise store.mantraList the first time.
+// After that, the store copy is the single source of truth (so add/edit/delete/reorder all work).
+const mantraSeed=[
+  {id:'surya',   name:'Surya Arghya',     planet:'Sun',     mantra:'Om Hrim Hraum Suryaya Namaha',        daily:12,  note:'21x on Sundays only',               type:'Arghya', days:'All days'},
+  {id:'ganesha', name:'Ganesha Mantra',   planet:'Ganesha', mantra:'Om Gam Ganapataye Namaha',            daily:108, note:'Touch yantra, sandalwood incense',  type:'Beej',   days:'All days'},
+  {id:'hanuman', name:'Hanuman Chalisa',  planet:'Hanuman', mantra:'Full recitation',                     daily:1,   note:'3x on Saturdays during Rahu PD',    type:'Stotra', days:'All days'},
+  {id:'mrityu',  name:'Mrityunjaya',      planet:'Jupiter', mantra:'Om Tryambakam Yajamahe...',           daily:21,  note:'D-60 Lagna lord Jupiter',           type:'Mantra', days:'All days'},
+  {id:'moon_b',  name:'Moon Beej',        planet:'Moon',    mantra:'Om Som Somaya Namaha',                daily:108, note:'During Moon hora',                  type:'Beej',   days:'Monday'},
+  {id:'moon_g',  name:'Moon Gayatri',     planet:'Moon',    mantra:'Om Kshirputraya Vidmahe...',          daily:108, note:'D-60',                               type:'Gayatri',days:'Monday'},
+  {id:'argala',  name:'Argala Stotram',   planet:'Moon',    mantra:'Devi Mahatmyam — full recitation',    daily:1,   note:'Raw milk + white flowers to Shiva', type:'Stotra', days:'Monday'},
+  {id:'merc_b',  name:'Mercury Beej',     planet:'Mercury', mantra:'Om Bum Budhaya Namaha',               daily:27,  note:'Mercury hora 7–10 AM',              type:'Beej',   days:'Wednesday'},
+  {id:'merc_g',  name:'Mercury Gayatri',  planet:'Mercury', mantra:'Om Gajadhwajaya Vidmahe...',          daily:108, note:'D-60',                               type:'Gayatri',days:'Wednesday'},
+  {id:'jup_g',   name:'Jupiter Gayatri',  planet:'Jupiter', mantra:'Om Vrishabhdhwajaya Vidmahe...',      daily:108, note:'Before sunrise',                    type:'Gayatri',days:'Thursday'},
+  {id:'jup_b',   name:'Jupiter Beej',     planet:'Jupiter', mantra:'Om Brim Brihaspataye Namaha',         daily:19,  note:'Jupiter hora 6–10 AM — career slot',type:'Beej',   days:'Thursday'},
+  {id:'venus_g', name:'Venus Gayatri',    planet:'Venus',   mantra:'Om Ashwadhwajaya Vidmahe...',         daily:108, note:'D-60',                               type:'Gayatri',days:'Friday'},
+  {id:'lakshmi', name:'Lakshmi Ashtakam', planet:'Venus',   mantra:'Full recitation — evening',           daily:1,   note:'Ghee lamp. Yama amsha Venus',       type:'Stotra', days:'Friday'},
+  {id:'sat_b',   name:'Saturn Beej',      planet:'Saturn',  mantra:'Om Sham Shanaishcharaya Namaha',      daily:19,  note:'Saturn hora at sunrise',            type:'Beej',   days:'Saturday'},
+  {id:'sat_g',   name:'Saturn Gayatri',   planet:'Saturn',  mantra:'Om Kakadwajaya Vidmahe...',           daily:108, note:'D-60',                               type:'Gayatri',days:'Saturday'},
+  {id:'vishnu_sahasranama', name:'Vishnu Sahasranama',      planet:'Vishnu', mantra:'Full recitation — 1000 names of Vishnu', daily:1,  note:'Once daily, ideally morning',       type:'Stotra',   days:'All days'},
+  {id:'nakshatra_devata',   name:'Nakshatra Devata Mantra', planet:'Nakshatra Devata', mantra:'Om [Janma Nakshatra] Devatayai Namaha', daily:108, note:'Chant to your birth-star deity', type:'Beej',     days:'All days'},
+  {id:'harekrishna',        name:'Hare Krishna Mahamantra', planet:'Krishna', mantra:'Hare Krishna Hare Krishna, Krishna Krishna Hare Hare · Hare Rama Hare Rama, Rama Rama Hare Hare', daily:16, note:'16 rounds = 16 malas (1,728 chants)', type:'Mahamantra', days:'All days'},
+];
+
+// Default seeds — only used to initialise store.purashList / store.specialList the first time.
+// After that, the store copies are the single source of truth (so add/edit/delete/reorder all work).
+const purashSeed=[
+  {id:'p0',planet:'Jupiter',mantra:'Om Graam Greem Graum Sah Gurave Namah',         target:19000,day:'Thursday', deadline:'Before Jun 2026',after:'Revert to 19x Thursday Jupiter hora'},
+  {id:'p1',planet:'Moon',   mantra:'Om Shraam Shreem Shraum Sah Chandramase Namah', target:11000,day:'Monday',   deadline:'Before Jun 2026',after:'Revert to 108x Monday'},
+  {id:'p2',planet:'Venus',  mantra:'Om Draam Dreem Draum Sah Shukraya Namah',       target:16000,day:'Friday',   deadline:'By Dec 2026',    after:'Revert to Gayatri on Fridays'},
+  {id:'p3',planet:'Mercury',mantra:'Om Braam Breem Braum Sah Budhaya Namah',        target:17000,day:'Wednesday',deadline:'By Dec 2026',    after:'Revert to 27x Wednesday'},
+  {id:'p4',planet:'Saturn', mantra:'Om Praam Preem Praum Sah Shanaischaraya Namah', target:23000,day:'Saturday', deadline:'By Mar 2027',    after:'Revert to 19x Saturday Saturn hora'},
+];
+const specialSeed=[
+  {id:'p5',planet:'Vishnu', mantra:'Om Namo Bhagavate Vasudevaya',                  target:12000,day:'All days', deadline:'Ongoing',        after:'Continue Vishnu Sahasranama daily — placeholder target, edit anytime'},
+  {id:'p6',planet:'Nakshatra Devata', mantra:'Om [Janma Nakshatra] Devatayai Namaha',target:27000,day:'All days', deadline:'Ongoing',        after:'Revert to 108x daily — placeholder target, edit anytime'},
+  {id:'p7',planet:'Krishna',mantra:'Hare Krishna Mahamantra',                       target:16000,day:'All days', deadline:'Ongoing',        after:'Continue daily rounds as lifelong sadhana — placeholder target, edit anytime'},
+];
+
+// Monthly ritual definitions (special monthly-only observances)
+const monthlyRituals=[
+  {
+    id:'amavasya',
+    title:'Amavasya — Pitru Tarpan',
+    occasion:'New Moon',
+    planet:'Pitru',
+    tag:'Pitru Tarpan',
+    tagBg:'#F5F3FF',tagColor:'#3730A3',tagBorder:'#DDD6FE',
+    mantra:'Om Pitru Devaya Namaha',
+    devanagari:'ॐ पितृ देवाय नमः',
+    target:11,
+    notes:[
+      'Face South. Cup both hands. Offer water 3 times letting it pour over right thumb. Repeat 3 cycles.',
+      'Chant mantra × 11 during each water offering.',
+      'Light a sesame oil lamp facing South after offering.',
+      'Donate food to elderly or Brahmins on first Amavasya of every month.',
+      '⚠ Do NOT make major career or financial decisions on Amavasya days.',
+    ],
+    why:'Amavasya birth + Moon gandanta + 8th lord MD = highest ancestral karma load. Monthly Tarpan clears it systematically. Single most important monthly ritual for this chart.'
+  },
+  {
+    id:'sankashti',
+    title:'Sankashti Chaturthi — Ganesha Fast',
+    occasion:'4th day after Purnima (waning)',
+    planet:'Ganesha',
+    tag:'Ganesha Fast',
+    tagBg:'#FFF7ED',tagColor:'#7C2D12',tagBorder:'#FED7AA',
+    mantra:'Om Gam Ganapataye Namaha',
+    devanagari:'ॐ गं गणपतये नमः',
+    target:1008,
+    notes:[
+      'Fast from sunrise to moonrise — water and milk permitted, no food.',
+      'Chant mantra × 1008 — spread across morning and evening sessions.',
+      'Visit Ganesha temple in evening. Break fast after moonrise.',
+      'Offer modak, durva grass, red flowers at temple.',
+      'During Jupiter PD (Jun 20–Sep 12, 2026): extend to full Ganesha Stotra recitation in addition to 1008x.',
+    ],
+    why:'Most powerful monthly practice for Amavasya-born natives. Directly aligns with the chart\'s primary karmic requirement. Addresses employment gap obstacle at root.'
+  },
+];
+
+function monthKey(ritualId, year, month){
+  return 'monthly_'+ritualId+'_'+year+'_'+(month<10?'0':'')+month;
+}
+
+// ── JSONBin cloud sync (same bin as your existing tracker — history stays intact) ──
+const BIN_ID='69eeef2636566621a8f66c1b';
+const API_KEY='$2a$10$vI9RqTpeDcXdxiFXJ4R9t.bF40GUPUHfKYAlZI8cvmarSPJof7Zga';
+const BIN_URL='https://api.jsonbin.io/v3/b/'+BIN_ID;
+let store={};
+let _syncTimer=null;
+
+function showSyncBadge(state){
+  const el=document.getElementById('sync-badge');
+  if(!el)return;
+  const map={
+    loading:{bg:'#FFFBEB',col:'#92400E',bdr:'#FDE68A',txt:'⟳ loading...'},
+    saving: {bg:'#EFF6FF',col:'#1E40AF',bdr:'#BFDBFE',txt:'⟳ saving...'},
+    saved:  {bg:'#F0FDF4',col:'#15803D',bdr:'#BBF7D0',txt:'✓ synced'},
+    error:  {bg:'#FFF1F2',col:'#9F1239',bdr:'#FECDD3',txt:'⚠ offline — saved locally'},
+  };
+  const s=map[state]||map.saved;
+  el.style.cssText='font-size:11px;padding:3px 10px;border-radius:12px;background:'+s.bg+';color:'+s.col+';border:1px solid '+s.bdr;
+  el.textContent=s.txt;
+}
+
+async function loadStore(){
+  showSyncBadge('loading');
+  try{
+    const r=await fetch(BIN_URL+'/latest',{headers:{'X-Master-Key':API_KEY,'X-Bin-Meta':'false'}});
+    if(r.ok){
+      const data=await r.json();
+      store=(data&&typeof data==='object'&&!Array.isArray(data))?data:{};
+      try{localStorage.setItem('mt9_store',JSON.stringify(store));}catch{}
+      showSyncBadge('saved');
+    } else { throw new Error(); }
+  } catch(e){
+    try{const s=localStorage.getItem('mt9_store');store=s?JSON.parse(s):{};}catch{store={};}
+    showSyncBadge('error');
+  }
+  migrateStore();
+}
+
+function migrateStore(){
+  if(!store.mantraList) store.mantraList=JSON.parse(JSON.stringify(mantraSeed));
+  if(!store.purashList) store.purashList=JSON.parse(JSON.stringify(purashSeed));
+  if(!store.specialList) store.specialList=JSON.parse(JSON.stringify(specialSeed));
+  // one-time migration from the older "customMantras" mechanic, if present
+  if(store.customMantras && store.customMantras.length){
+    store.customMantras.forEach(m=>store.mantraList.push(m));
+    delete store.customMantras;
+  }
+  // one-time migration from the older "customPurash" mechanic, if present
+  if(store.customPurash && store.customPurash.length){
+    store.customPurash.forEach(p=>{
+      const dest = ['Vishnu','Nakshatra Devata','Krishna'].includes(p.planet) ? store.specialList : store.purashList;
+      dest.push({id:p.id,planet:p.planet,mantra:p.mantra,target:p.target,day:p.day,deadline:p.deadline||'Ongoing',after:p.after||'',linkedMantraId:p.linkedMantraId});
+    });
+    delete store.customPurash;
+  }
+  saveStore();
+}
+
+function saveStore(){
+  try{localStorage.setItem('mt9_store',JSON.stringify(store));}catch{}
+  clearTimeout(_syncTimer);
+  showSyncBadge('saving');
+  _syncTimer=setTimeout(async()=>{
+    try{
+      const r=await fetch(BIN_URL,{method:'PUT',
+        headers:{'Content-Type':'application/json','X-Master-Key':API_KEY},
+        body:JSON.stringify(store)});
+      showSyncBadge(r.ok?'saved':'error');
+    } catch(e){showSyncBadge('error');}
+  },800);
+}
+
+let store_loaded=loadStore();
+function getDC(id,k){return(store.days&&store.days[k]&&store.days[k][id])||0;}
+function getTotal(id){return(store.totals&&store.totals[id])||0;}
+function getMonthly(key){return(store.monthly&&store.monthly[key])||0;}
+function setMonthly(key,val){
+  if(!store.monthly)store.monthly={};
+  store.monthly[key]=val;
+  saveStore();
+}
+
+function addC(id,n,k){
+  if(!store.days)store.days={};
+  if(!store.days[k])store.days[k]={};
+  if(!store.totals)store.totals={};
+  store.days[k][id]=(store.days[k][id]||0)+n;
+  store.totals[id]=(store.totals[id]||0)+n;
+  saveStore();
+}
+
+function setDayCountAbs(id,k,newVal){
+  if(!store.days)store.days={};
+  if(!store.days[k])store.days[k]={};
+  if(!store.totals)store.totals={};
+  const old=store.days[k][id]||0;
+  const delta=newVal-old;
+  store.days[k][id]=newVal;
+  store.totals[id]=Math.max(0,(store.totals[id]||0)+delta);
+  saveStore();
+}
+
+function toggleCell(id,k,target){
+  const cur=getDC(id,k);
+  if(cur>=target){setDayCountAbs(id,k,0);} else {setDayCountAbs(id,k,target);}
+  refresh();
+}
+function onCellInputChange(id,k,val){
+  const v=Math.max(0,parseInt(val||'0',10)||0);
+  setDayCountAbs(id,k,v);
+  refresh();
+}
+
+function resetAllTime(id,name){
+  const total=getTotal(id);
+  if(total===0){alert(name+' all-time total is already 0.');return;}
+  const confirmed=confirm('⚠ PERMANENT RESET — '+name+'\n\nThis will:\n- Wipe the all-time total (currently '+total.toLocaleString()+')\n- Clear every date entry for this mantra\n\nThis cannot be undone. Are you sure?');
+  if(!confirmed)return;
+  const doubleCheck=confirm('Last confirmation — permanently delete all '+total.toLocaleString()+' entries for '+name+'?');
+  if(!doubleCheck)return;
+  if(!store.days)store.days={};
+  if(!store.totals)store.totals={};
+  Object.keys(store.days).forEach(k=>{if(store.days[k][id]!==undefined)store.days[k][id]=0;});
+  store.totals[id]=0;
+  saveStore();refresh();
+}
+
+let activeFilter='All';
+function tgt(m,d){return m.id==='surya'&&dn(d)==='Sunday'?21:m.daily;}
+function pct(c,t){return t>0?Math.min(100,Math.round(c/t*100)):0;}
+
+// ── All mantras now live in store.mantraList (editable, reorderable, deletable) ──
+function allMantras(){return store.mantraList||[];}
+// mantras still shown/logged in the Daily Dashboard weekly grid (excludes archived ones)
+function activeMantras(){return allMantras().filter(m=>!m.archived);}
+// ── Purashcharana lists ──
+function purashList(){return store.purashList||[];}
+function specialList(){return store.specialList||[];}
+function allPurash(){return purashList().concat(specialList());} // used by Master Tracker totals only
+
+let amEditId=null;
+function openAddMantra(editId){
+  amEditId=editId||null;
+  const purashRow=document.getElementById('am-purash-row');
+  if(editId){
+    const item=allMantras().find(x=>x.id===editId);
+    if(!item)return;
+    document.getElementById('am-modal-title').textContent='Edit mantra';
+    document.getElementById('am-modal-sub').textContent='Update the details below. To change its Purashcharana target, use the Purashcharana or Weekly special tab.';
+    document.getElementById('am-save').textContent='Save changes';
+    document.getElementById('am-name').value=item.name;
+    document.getElementById('am-text').value=item.mantra;
+    document.getElementById('am-planet').value=item.planet;
+    document.getElementById('am-daily').value=item.daily;
+    document.getElementById('am-days').value=item.days||'All days';
+    document.getElementById('am-note').value=item.note||'';
+    purashRow.style.display='none';
+  } else {
+    document.getElementById('am-modal-title').textContent='Add a mantra';
+    document.getElementById('am-modal-sub').textContent='Appears immediately in the weekly grid and Master Tracker — and in Purashcharana too, if you set a target below.';
+    document.getElementById('am-save').textContent='Add mantra';
+    document.getElementById('am-name').value='';
+    document.getElementById('am-text').value='';
+    document.getElementById('am-planet').value='';
+    document.getElementById('am-daily').value=108;
+    document.getElementById('am-days').value='All days';
+    document.getElementById('am-note').value='';
+    document.getElementById('am-purash').value='';
+    purashRow.style.display='';
+  }
+  document.getElementById('addModal').classList.add('open');
+}
+function closeAddMantra(){document.getElementById('addModal').classList.remove('open');}
+function saveAddMantra(){
+  const name=document.getElementById('am-name').value.trim();
+  const planet=document.getElementById('am-planet').value.trim();
+  const daily=parseInt(document.getElementById('am-daily').value,10)||0;
+  if(!name||!planet||daily<=0){alert('Please fill in Name, Deity/Planet, and a Daily target greater than 0.');return;}
+  const text=document.getElementById('am-text').value.trim()||'—';
+  const days=document.getElementById('am-days').value;
+  const note=document.getElementById('am-note').value.trim();
+
+  if(amEditId){
+    const item=allMantras().find(x=>x.id===amEditId);
+    if(item)Object.assign(item,{name,mantra:text,planet,daily,days,note});
+  } else {
+    const purashTarget=parseInt(document.getElementById('am-purash').value,10)||0;
+    const id='custom_'+Date.now();
+    if(!store.mantraList)store.mantraList=[];
+    store.mantraList.push({id,name,planet,mantra:text,daily,note,type:'Custom',days,custom:true});
+    if(purashTarget>0){
+      const dest = ['Vishnu','Nakshatra Devata','Krishna'].includes(planet) ? store.specialList : store.purashList;
+      dest.push({id:'purash_'+Date.now(),planet,mantra:text,target:purashTarget,day:days,deadline:'Ongoing',after:'Linked to mantra "'+name+'" — edit or remove anytime.',linkedMantraId:id});
+    }
+  }
+  saveStore();
+  closeAddMantra();
+  refresh();
+}
+function archiveMantra(id,name){
+  const item=allMantras().find(x=>x.id===id);
+  if(!item)return;
+  if(item.archived){
+    item.archived=false;
+    saveStore();
+    refresh();
+    return;
+  }
+  if(!confirm('Remove "'+name+'" from the Daily Dashboard?\n\nIts logged history and all-time total stay fully visible in Master Tracker — nothing is deleted. You can bring it back to the daily grid anytime from Master Tracker (look for "restore").'))return;
+  item.archived=true;
+  saveStore();
+  refresh();
+}
+function deleteMantra(id,name){
+  const total=getTotal(id);
+  const warn = total>0
+    ? 'Permanently delete "'+name+'"?\n\nThis removes it from EVERY tab, including Master Tracker, AND wipes its logged history (currently '+total.toLocaleString()+' chants across all dates), plus any linked Purashcharana target.\n\nIf you just want to stop tracking it daily but keep its history in Master Tracker, use "remove from dashboard" instead — this button is for permanent deletion only.\n\nThis cannot be undone.'
+    : 'Permanently delete "'+name+'"?\n\nThis removes it from every tab. This cannot be undone.';
+  if(!confirm(warn))return;
+  if(total>0){
+    if(!confirm('Last confirmation — permanently delete "'+name+'" and its '+total.toLocaleString()+' logged chants?'))return;
+  }
+  if(store.mantraList)store.mantraList=store.mantraList.filter(m=>m.id!==id);
+  if(store.purashList)store.purashList=store.purashList.filter(p=>p.linkedMantraId!==id);
+  if(store.specialList)store.specialList=store.specialList.filter(p=>p.linkedMantraId!==id);
+  if(store.days){Object.keys(store.days).forEach(k=>{if(store.days[k][id]!==undefined)delete store.days[k][id];});}
+  if(store.totals)delete store.totals[id];
+  saveStore();
+  refresh();
+}
+
+// ── Add / edit / delete / reorder Purashcharana targets (both tabs) ──
+let pmListKey='purash';
+let pmEditId=null;
+function openPurashModal(listKey,editId){
+  pmListKey=listKey;
+  pmEditId=editId||null;
+  const list = listKey==='special'?specialList():purashList();
+  if(editId){
+    const item=list.find(x=>x.id===editId);
+    document.getElementById('pm-title').textContent='Edit Purashcharana target';
+    document.getElementById('pm-sub').textContent='Update the details below.';
+    document.getElementById('pm-save').textContent='Save changes';
+    document.getElementById('pm-planet').value=item.planet;
+    document.getElementById('pm-text').value=item.mantra;
+    document.getElementById('pm-target').value=item.target;
+    document.getElementById('pm-day').value=item.day||'All days';
+    document.getElementById('pm-deadline').value=item.deadline||'';
+    document.getElementById('pm-after').value=item.after||'';
+  } else {
+    document.getElementById('pm-title').textContent='Add Purashcharana target';
+    document.getElementById('pm-sub').textContent = listKey==='special' ? 'Adds a new target to Weekly Special.' : 'Adds a new target to the main Purashcharana list.';
+    document.getElementById('pm-save').textContent='Add target';
+    document.getElementById('pm-planet').value='';
+    document.getElementById('pm-text').value='';
+    document.getElementById('pm-target').value='';
+    document.getElementById('pm-day').value='All days';
+    document.getElementById('pm-deadline').value='Ongoing';
+    document.getElementById('pm-after').value='';
+  }
+  document.getElementById('purashModal').classList.add('open');
+}
+function closePurashModal(){document.getElementById('purashModal').classList.remove('open');}
+function savePurashModal(){
+  const planet=document.getElementById('pm-planet').value.trim();
+  const target=parseInt(document.getElementById('pm-target').value,10)||0;
+  if(!planet||target<=0){alert('Please fill in Deity/Planet and a Target greater than 0.');return;}
+  const mantraTxt=document.getElementById('pm-text').value.trim()||'—';
+  const day=document.getElementById('pm-day').value;
+  const deadline=document.getElementById('pm-deadline').value.trim()||'Ongoing';
+  const after=document.getElementById('pm-after').value.trim();
+  const list = pmListKey==='special'?specialList():purashList();
+  if(pmEditId){
+    const item=list.find(x=>x.id===pmEditId);
+    if(item)Object.assign(item,{planet,mantra:mantraTxt,target,day,deadline,after});
+  } else {
+    list.push({id:'purash_'+Date.now(),planet,mantra:mantraTxt,target,day,deadline,after});
+  }
+  saveStore();
+  closePurashModal();
+  refresh();
+}
+function deletePurashItem(listKey,id,label){
+  if(!confirm('Delete "'+label+'"?\n\nThis cannot be undone. Any counts already logged for it stay in your history totals but the target card will be gone.'))return;
+  const list = listKey==='special'?specialList():purashList();
+  const idx=list.findIndex(x=>x.id===id);
+  if(idx>=0)list.splice(idx,1);
+  saveStore();
+  refresh();
+}
+
+// drag-and-drop reorder for purashcharana cards
+let dragSrcId=null, dragSrcList=null;
+function pcDragStart(id,listKey){dragSrcId=id;dragSrcList=listKey;}
+function pcDragOverCard(e){e.preventDefault();e.currentTarget.classList.add('drag-over');}
+function pcDragLeaveCard(e){e.currentTarget.classList.remove('drag-over');}
+function pcDrop(e,targetId,listKey){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if(listKey!==dragSrcList||dragSrcId===targetId||!dragSrcId)return;
+  const list = listKey==='special'?specialList():purashList();
+  const fromIdx=list.findIndex(x=>x.id===dragSrcId);
+  const toIdx=list.findIndex(x=>x.id===targetId);
+  if(fromIdx<0||toIdx<0)return;
+  const [item]=list.splice(fromIdx,1);
+  list.splice(toIdx,0,item);
+  dragSrcId=null;dragSrcList=null;
+  saveStore();
+  refresh();
+}
+
+// drag-and-drop reorder for weekly grid mantra rows
+let mDragId=null;
+function mDragStart(e,id){mDragId=id;e.currentTarget.classList.add('dragging');}
+function mDragEnd(e){e.currentTarget.classList.remove('dragging');}
+function mDragOverRow(e){e.preventDefault();e.currentTarget.classList.add('drag-over');}
+function mDragLeaveRow(e){e.currentTarget.classList.remove('drag-over');}
+function mDrop(e,targetId){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if(!mDragId||mDragId===targetId)return;
+  const list=allMantras();
+  const fromIdx=list.findIndex(x=>x.id===mDragId);
+  const toIdx=list.findIndex(x=>x.id===targetId);
+  if(fromIdx<0||toIdx<0)return;
+  const [item]=list.splice(fromIdx,1);
+  list.splice(toIdx,0,item);
+  mDragId=null;
+  saveStore();
+  refresh();
+}
+
+function toggleCal(){
+  calOpen=!calOpen;
+  calYear=weekAnchor.getFullYear();calMonthIdx=weekAnchor.getMonth();
+  document.getElementById('cal-popup').classList.toggle('open',calOpen);
+  document.getElementById('date-display-btn').classList.toggle('open',calOpen);
+  document.getElementById('ddb-arrow').classList.toggle('open',calOpen);
+  if(calOpen)renderCalGrid();
+}
+function closeCal(){
+  calOpen=false;
+  document.getElementById('cal-popup').classList.remove('open');
+  document.getElementById('date-display-btn').classList.remove('open');
+  document.getElementById('ddb-arrow').classList.remove('open');
+}
+document.addEventListener('click',function(e){
+  const nav=document.getElementById('date-nav');
+  if(calOpen&&nav&&!nav.contains(e.target))closeCal();
+});
+document.getElementById('addModal').addEventListener('click',function(e){if(e.target.id==='addModal')closeAddMantra();});
+document.getElementById('purashModal').addEventListener('click',function(e){if(e.target.id==='purashModal')closePurashModal();});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){closeAddMantra();closePurashModal();}
+});
+
+function calShiftMonth(dir){
+  calMonthIdx+=dir;
+  if(calMonthIdx>11){calMonthIdx=0;calYear++;}
+  if(calMonthIdx<0){calMonthIdx=11;calYear--;}
+  renderCalGrid();
+}
+function renderCalGrid(){
+  document.getElementById('cal-month-title').textContent=MONTHS[calMonthIdx]+' '+calYear;
+  document.getElementById('cal-next').disabled=(calYear>TODAY.getFullYear()||(calYear===TODAY.getFullYear()&&calMonthIdx>=TODAY.getMonth()));
+  const firstDay=new Date(calYear,calMonthIdx,1).getDay();
+  const daysInMonth=new Date(calYear,calMonthIdx+1,0).getDate();
+  const weekEnd=addDays(weekAnchor,6);
+  let html=DOW.map(d=>`<span class="cal-dow">${d}</span>`).join('');
+  for(let i=0;i<firstDay;i++)html+=`<span class="cal-cell empty"></span>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const cd=new Date(calYear,calMonthIdx,d);cd.setHours(0,0,0,0);
+    const ck=dk(cd);
+    const isFuture=cd>TODAY;
+    const isT=ck===TODAY_KEY;
+    const isSel=cd>=weekAnchor&&cd<=weekEnd;
+    let cls='cal-cell';
+    if(isT)cls+=' is-today';
+    if(isSel)cls+=' is-selected';
+    html+=`<button class="${cls}" ${isFuture?'disabled':''} onclick="pickWeek('${ck}')">${d}</button>`;
+  }
+  document.getElementById('cal-grid').innerHTML=html;
+}
+function commitPendingInput(){
+  const el=document.activeElement;
+  if(el&&el.tagName==='INPUT'&&el.classList.contains('wk-num'))el.blur();
+}
+function pickWeek(key){
+  commitPendingInput();
+  const nd=new Date(key+'T00:00:00');nd.setHours(0,0,0,0);
+  if(nd>TODAY)return;
+  weekAnchor=startOfWeek(nd);closeCal();renderDaily();
+}
+function changeWeek(dir){
+  commitPendingInput();
+  const nd=addDays(weekAnchor,7*dir);
+  if(nd>startOfWeek(TODAY))return;
+  weekAnchor=nd;renderDaily();
+}
+function goTodayWeek(){commitPendingInput();weekAnchor=startOfWeek(TODAY);closeCal();renderDaily();}
+
+function renderDaily(){
+  const dates=[0,1,2,3,4,5,6].map(i=>addDays(weekAnchor,i));
+  const startStr=dates[0].toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+  const endStr=dates[6].toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+  document.getElementById('wk-range').textContent=startStr+' – '+endStr;
+  document.getElementById('btn-next').disabled=!(weekAnchor<startOfWeek(TODAY));
+  document.getElementById('btn-today').style.display=(dk(weekAnchor)===dk(startOfWeek(TODAY)))?'none':'inline-block';
+
+  const containsToday=dates.some(d=>dk(d)===TODAY_KEY);
+  const activeM=activeMantras();
+  let weekTotal=0,todayDone=0,todayCount=0;
+  activeM.forEach(m=>{
+    dates.forEach(d=>{weekTotal+=getDC(m.id,dk(d));});
+    if(containsToday){todayCount++;if(getDC(m.id,TODAY_KEY)>=tgt(m,TODAY))todayDone++;}
+  });
+  document.getElementById('d-stats').innerHTML=`
+    <div class="stat-card blue"><div class="stat-lbl">Mantras tracked</div><div class="stat-num">${activeM.length}</div></div>
+    <div class="stat-card green"><div class="stat-lbl">Today completed</div><div class="stat-num">${containsToday?(todayDone+' / '+todayCount):'—'}</div></div>
+    <div class="stat-card gold"><div class="stat-lbl">Week total chants</div><div class="stat-num">${weekTotal.toLocaleString()}</div></div>`;
+
+  let headHtml='<th class="wk-handle-h"></th><th class="wk-mantra-h">Mantra</th>';
+  dates.forEach(d=>{
+    const isToday=dk(d)===TODAY_KEY;
+    headHtml+=`<th class="wk-day-h ${isToday?'is-today-col':''}">${DOW[d.getDay()]}<span class="wk-date-num">${d.getDate()}</span></th>`;
+  });
+  headHtml+='<th class="wk-total-h">Week</th>';
+  document.getElementById('wk-thead').innerHTML=headHtml;
+
+  let rows='';let prevPlanet='';
+  activeM.forEach(m=>{
+    const th=pt(m.planet);
+    if(m.planet!==prevPlanet){rows+=`<tr class="wk-group-row"><td colspan="10">${m.planet}</td></tr>`;prevPlanet=m.planet;}
+    let rowTotal=0,cellsHtml='';
+    dates.forEach(d=>{
+      const dkStr=dk(d);
+      const t=tgt(m,d);
+      const cnt=getDC(m.id,dkStr);
+      rowTotal+=cnt;
+      const isFuture=d>TODAY;
+      const isRuling=m.days!=='All days'&&m.days===dn(d);
+      const checked=cnt>=t;
+      cellsHtml+=`<td class="wk-cell ${isRuling?'is-ruling':''} ${isFuture?'is-future':''}">
+        <div class="wk-cellwrap">
+          <input type="checkbox" ${checked?'checked':''} ${isFuture?'disabled':''} onclick="toggleCell('${m.id}','${dkStr}',${t})">
+          <input type="number" class="wk-num" min="0" value="${cnt}" ${isFuture?'disabled':''} onchange="onCellInputChange('${m.id}','${dkStr}',this.value)">
+        </div>
+      </td>`;
+    });
+    rows+=`<tr draggable="true"
+      ondragstart="mDragStart(event,'${m.id}')"
+      ondragend="mDragEnd(event)"
+      ondragover="mDragOverRow(event)"
+      ondragleave="mDragLeaveRow(event)"
+      ondrop="mDrop(event,'${m.id}')">
+      <td class="wk-handle" title="Drag to reorder">&#10247;</td>
+      <td class="wk-mantra-cell" style="border-left:3px solid ${th.border}">
+        <div class="wk-m-name">${m.name}</div>
+        <div class="wk-m-mantra">${m.mantra}</div>
+        <div class="wk-m-meta">
+          <span class="badge" style="background:${th.bg};color:${th.text};border:1px solid ${th.border}">${m.planet}</span>
+          <span class="wk-m-tag">${m.days==='All days'?'Every day':m.days}</span>
+          <span class="wk-m-tag">Target ${m.daily}${m.id==='surya'?' (21 Sun)':''}</span>
+          ${m.custom?`<span class="wk-m-tag">custom</span>`:''}
+          <span class="wk-m-tag" style="cursor:pointer" onclick="openAddMantra('${m.id}')">edit</span>
+          <span class="wk-m-tag" style="cursor:pointer;color:#92400E;border-color:#FDE68A" onclick="archiveMantra('${m.id}','${m.name}')">remove from daily</span>
+          <span class="wk-m-tag" style="cursor:pointer;color:#9F1239;border-color:#FECDD3" onclick="deleteMantra('${m.id}','${m.name}')">delete permanently</span>
+        </div>
+      </td>
+      ${cellsHtml}
+      <td class="wk-total-cell">${rowTotal}</td>
+    </tr>`;
+  });
+  document.getElementById('wk-tbody').innerHTML=rows;
+}
+
+function renderMonthly(){
+  const year=parseInt(document.getElementById('year-sel').value);
+  const month=parseInt(document.getElementById('month-sel').value);
+
+  let totalDone=0;
+  const cards=monthlyRituals.map(r=>{
+    const key=monthKey(r.id,year,month);
+    const cnt=getMonthly(key);
+    const pp=pct(cnt,r.target);
+    const done=cnt>=r.target;
+    if(done)totalDone++;
+    const th=pt(r.planet);
+    const barColor=done?'#15803D':pp>=50?'#3B82F6':'#EAB308';
+    return `<div class="m-ritual-card" style="border-left:3px solid ${th.border}">
+      <div class="m-ritual-header">
+        <span class="m-occasion-tag" style="background:${r.tagBg};color:${r.tagColor};border:1px solid ${r.tagBorder}">${r.tag}</span>
+        <div class="m-ritual-title" style="margin-top:8px">${r.title}</div>
+        <div class="m-ritual-sub">${r.occasion}</div>
+        <div style="margin-top:12px"><span class="badge" style="background:${done?'#F0FDF4':'#F8FAFC'};color:${done?'#15803D':'var(--text3)'};border:1px solid ${done?'#BBF7D0':'var(--border)'}">${done?'✓ done':'pending'}</span></div>
+      </div>
+      <div class="m-ritual-body">
+        <div class="m-mantra-block">
+          <div class="m-mantra-label">Mantra · target ${r.target.toLocaleString()}×</div>
+          <div class="m-mantra-text">${r.mantra}</div>
+          <div class="m-mantra-devanagari">${r.devanagari}</div>
+        </div>
+        <div class="m-count-row">
+          <span class="m-count-done">${cnt.toLocaleString()}</span>
+          <span class="m-count-sep">/</span>
+          <span class="m-count-target"><strong>${r.target.toLocaleString()}</strong> target</span>
+          <span style="font-size:11px;color:var(--text3);margin-left:auto">${pp}%</span>
+        </div>
+        <div class="m-prog"><div class="m-prog-fill" style="width:${pp}%;background:${barColor}"></div></div>
+        <div class="m-btn-row">
+          <button class="btn-primary" onclick="addMonthly1('${r.id}')">+1</button>
+          <input class="inp" type="number" id="mi_${r.id}" placeholder="n" min="0"/>
+          <button class="btn-sec" onclick="addMonthly('${r.id}','mi_${r.id}')">add</button>
+          <button class="btn-sec" onclick="setMonthlyDone('${r.id}')" style="background:#F0FDF4;border-color:#BBF7D0;color:#15803D">mark done</button>
+          <button class="btn-day-reset" onclick="resetMonthly('${r.id}','${r.title}')">reset</button>
+        </div>
+        <div class="m-note">
+          <ul style="padding-left:14px">
+            ${r.notes.map(n=>`<li>${n}</li>`).join('')}
+          </ul>
+          <div style="margin-top:8px;font-style:italic;color:var(--text2)">${r.why}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const statsHtml=`
+    <div class="stats-row" style="margin-bottom:1.2rem">
+      <div class="stat-card purple"><div class="stat-lbl">${MONTHS[month]} ${year}</div><div class="stat-num">${totalDone} / ${monthlyRituals.length} done</div></div>
+      <div class="stat-card blue"><div class="stat-lbl">Amavasya Tarpan</div><div class="stat-num">${getMonthly(monthKey('amavasya',year,month))} / 11</div></div>
+      <div class="stat-card gold"><div class="stat-lbl">Sankashti Chants</div><div class="stat-num">${getMonthly(monthKey('sankashti',year,month)).toLocaleString()} / 1,008</div></div>
+    </div>`;
+  document.getElementById('monthly-grid').innerHTML=statsHtml+cards;
+
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  let mmRows='';
+  allMantras().forEach(m=>{
+    let daysLogged=0,total=0;
+    for(let d=1;d<=daysInMonth;d++){
+      const ds=year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+      const c=getDC(m.id,ds);
+      if(c>0){daysLogged++;total+=c;}
+    }
+    const th=pt(m.planet);
+    mmRows+=`<tr><td>${m.name}</td><td><span class="badge" style="background:${th.bg};color:${th.text};border:1px solid ${th.border}">${m.planet}</span></td><td>${daysLogged} / ${daysInMonth}</td><td>${total.toLocaleString()}</td></tr>`;
+  });
+  document.getElementById('monthly-mantra-tbody').innerHTML=mmRows;
+}
+
+function addMonthly(ritualId, inpId){
+  const year=parseInt(document.getElementById('year-sel').value);
+  const month=parseInt(document.getElementById('month-sel').value);
+  const key=monthKey(ritualId,year,month);
+  const el=document.getElementById(inpId);
+  const v=parseInt(el?el.value:0)||0;
+  if(v>0){
+    const cur=getMonthly(key);
+    setMonthly(key,cur+v);
+    if(el)el.value='';
+  }
+  renderMonthly();
+}
+function addMonthly1(ritualId){
+  const year=parseInt(document.getElementById('year-sel').value);
+  const month=parseInt(document.getElementById('month-sel').value);
+  const key=monthKey(ritualId,year,month);
+  setMonthly(key,getMonthly(key)+1);
+  renderMonthly();
+}
+function resetMonthly(ritualId,name){
+  const year=parseInt(document.getElementById('year-sel').value);
+  const month=parseInt(document.getElementById('month-sel').value);
+  const key=monthKey(ritualId,year,month);
+  const cur=getMonthly(key);
+  if(cur===0){alert(name+' count is already 0 for this month.');return;}
+  if(!confirm('Reset '+name+' count for '+MONTHS[month]+' '+year+'?\n\nThis will clear the '+cur.toLocaleString()+' already logged.'))return;
+  setMonthly(key,0);
+  renderMonthly();
+}
+function setMonthlyDone(ritualId){
+  const year=parseInt(document.getElementById('year-sel').value);
+  const month=parseInt(document.getElementById('month-sel').value);
+  const key=monthKey(ritualId,year,month);
+  const r=monthlyRituals.find(x=>x.id===ritualId);
+  setMonthly(key,r.target);
+  renderMonthly();
+}
+
+function addMaster1(id){addC(id,1,TODAY_KEY);refresh();}
+function addMasterInp(id,inpId){
+  const el=document.getElementById(inpId);const v=parseInt(el?el.value:0)||0;
+  if(v>0){addC(id,v,TODAY_KEY);if(el)el.value='';}refresh();
+}
+
+function purashCardHTML(p, idx, listKey){
+  const c=getTotal(p.id),pp=pct(c,p.target),th=pt(p.planet),done=c>=p.target;
+  return `<div class="p-card" draggable="true"
+      ondragstart="pcDragStart('${p.id}','${listKey}')"
+      ondragover="pcDragOverCard(event)"
+      ondragleave="pcDragLeaveCard(event)"
+      ondrop="pcDrop(event,'${p.id}','${listKey}')"
+      style="border-left:3px solid ${th.border}">
+    <div class="p-handle" title="Drag to reorder">&#10247;</div>
+    <div class="p-body">
+      <div class="p-hdr">
+        <div class="p-title">${p.planet} Purashcharana
+          <span class="badge" style="background:${th.bg};color:${th.text};border:1px solid ${th.border};margin-left:7px">${p.planet}</span>
+        </div>
+        <span class="badge" style="background:${done?'#F0FDF4':'#EFF6FF'};color:${done?'#15803D':'#1E40AF'};border:1px solid ${done?'#BBF7D0':'#BFDBFE'}">${ordinal(idx+1)} &middot; ${done?'complete':'active'}</span>
+      </div>
+      <div class="p-mantra">${p.mantra}</div>
+      <div class="p-meta">
+        <div class="p-meta-item">Day: <strong>${p.day}</strong></div>
+        <div class="p-meta-item">Deadline: <strong>${p.deadline}</strong></div>
+        <div class="p-meta-item">Target: <strong>${p.target.toLocaleString()}</strong></div>
+        <div class="p-meta-item">Progress: <strong>${pp}%</strong></div>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:6px">
+        <span style="font-size:22px;font-weight:500;color:var(--text)">${c.toLocaleString()}</span>
+        <span style="font-size:13px;color:var(--text3)">/ ${p.target.toLocaleString()}</span>
+      </div>
+      <div class="p-prog"><div class="p-fill" style="width:${pp}%;background:${mpc(pp)}"></div></div>
+      <div class="btn-row" style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">
+        <button class="btn-primary" onclick="addMaster1('${p.id}')">+1</button>
+        <input class="inp" type="number" id="pi_${p.id}" placeholder="n" min="0"/>
+        <button class="btn-sec" onclick="addMasterInp('${p.id}','pi_${p.id}')">add</button>
+        <button class="btn-sec" onclick="openPurashModal('${listKey}','${p.id}')">edit</button>
+        <button class="btn-master-reset" onclick="resetAllTime('${p.id}','${p.planet} Purashcharana')">reset count</button>
+        <button class="btn-master-reset" onclick="deletePurashItem('${listKey}','${p.id}','${p.planet} Purashcharana')">delete</button>
+      </div>
+      <div class="p-after">After completion: ${p.after}</div>
+    </div>
+  </div>`;
+}
+
+function renderPurash(){
+  const list=purashList();
+  document.getElementById('purash-sub').textContent=`All ${list.length} active — sequential order recommended. Drag ⠿ to reorder.`;
+  const totalDone=list.filter(p=>getTotal(p.id)>=p.target).length;
+  const grand=list.reduce((a,p)=>a+getTotal(p.id),0);
+  const grandTgt=list.reduce((a,p)=>a+p.target,0);
+  document.getElementById('p-stats').innerHTML=`
+    <div class="stat-card blue"><div class="stat-lbl">Completed</div><div class="stat-num">${totalDone} / ${list.length}</div></div>
+    <div class="stat-card gold"><div class="stat-lbl">Total chants</div><div class="stat-num">${grand.toLocaleString()}</div></div>
+    <div class="stat-card green"><div class="stat-lbl">Overall progress</div><div class="stat-num">${pct(grand,grandTgt)}%</div></div>`;
+  document.getElementById('purash-list').innerHTML = list.length
+    ? list.map((p,idx)=>purashCardHTML(p,idx,'purash')).join('')
+    : `<div style="font-size:13px;color:var(--text3);padding:1rem">No Purashcharana targets yet — click "+ Add target" above.</div>`;
+}
+
+function renderSpecial(){
+  const list=specialList();
+  const totalDone=list.filter(p=>getTotal(p.id)>=p.target).length;
+  const grand=list.reduce((a,p)=>a+getTotal(p.id),0);
+  const grandTgt=list.reduce((a,p)=>a+p.target,0);
+  document.getElementById('s-stats').innerHTML=`
+    <div class="stat-card blue"><div class="stat-lbl">Completed</div><div class="stat-num">${totalDone} / ${list.length}</div></div>
+    <div class="stat-card gold"><div class="stat-lbl">Total chants</div><div class="stat-num">${grand.toLocaleString()}</div></div>
+    <div class="stat-card green"><div class="stat-lbl">Overall progress</div><div class="stat-num">${pct(grand,grandTgt)}%</div></div>`;
+  document.getElementById('special-list').innerHTML = list.length
+    ? list.map((p,idx)=>purashCardHTML(p,idx,'special')).join('')
+    : `<div style="font-size:13px;color:var(--text3);padding:1rem">No Weekly Special targets yet — click "+ Add target" above.</div>`;
+}
+
+function renderMaster(){
+  const activeMants=allMantras();
+  const activePurash=allPurash();
+  const allM=activeMants.reduce((a,m)=>a+getTotal(m.id),0);
+  const allP=activePurash.reduce((a,p)=>a+getTotal(p.id),0);
+  document.getElementById('m-stats').innerHTML=`
+    <div class="stat-card blue"><div class="stat-lbl">Daily mantras total</div><div class="stat-num">${allM.toLocaleString()}</div></div>
+    <div class="stat-card gold"><div class="stat-lbl">Purashcharana total</div><div class="stat-num">${allP.toLocaleString()}</div></div>
+    <div class="stat-card green"><div class="stat-lbl">Grand total all chants</div><div class="stat-num">${(allM+allP).toLocaleString()}</div></div>`;
+  const planets=['All',...new Set(activeMants.map(m=>m.planet))];
+  document.getElementById('planet-filters').innerHTML=planets.map(pl=>`<button class="filter-btn${activeFilter===pl?' active':''}" onclick="setFilter('${pl}')">${pl}</button>`).join('');
+  const filtered=activeFilter==='All'?activeMants:activeMants.filter(m=>m.planet===activeFilter);
+  const filtTotal=filtered.reduce((a,m)=>a+getTotal(m.id),0);
+  const filtDTgt=filtered.reduce((a,m)=>a+m.daily,0);
+  let rows='';let prev='';
+  filtered.forEach(m=>{
+    const c=getTotal(m.id),p=pct(c,m.daily),th=pt(m.planet),pc=mpc(p);
+    if(activeFilter==='All'&&m.planet!==prev){rows+=`<tr class="group-row"><td colspan="7">${m.planet}</td></tr>`;prev=m.planet;}
+    rows+=`<tr${m.archived?' style="opacity:0.6"':''}>
+      <td>${m.name}${m.custom?' <span class="wk-m-tag">custom</span>':''}${m.archived?' <span class="wk-m-tag" style="color:#92400E;border-color:#FDE68A">archived — off daily grid</span>':''}</td>
+      <td><span class="badge" style="background:${th.bg};color:${th.text};border:1px solid ${th.border}">${m.planet}</span></td>
+      <td>${m.days}</td><td>${m.daily}</td><td>${c.toLocaleString()}</td>
+      <td><span class="mini-bar"><span class="mini-fill" style="width:${p}%;background:${pc}"></span></span><span style="font-size:11px;color:var(--text3);margin-left:6px">${p}%</span></td>
+      <td><div class="tbl-actions">
+        <button class="btn-primary" style="padding:3px 9px;font-size:12px" onclick="addMaster1('${m.id}')">+1</button>
+        <input class="inp" style="width:42px" type="number" id="ti_${m.id}" placeholder="n" min="0"/>
+        <button class="btn-sec" style="padding:3px 8px;font-size:11px" onclick="addMasterInp('${m.id}','ti_${m.id}')">add</button>
+        <button class="btn-master-reset" onclick="resetAllTime('${m.id}','${m.name}')">reset all</button>
+        <button class="btn-sec" style="padding:3px 8px;font-size:11px" onclick="openAddMantra('${m.id}')">edit</button>
+        ${m.archived?`<button class="btn-sec" style="padding:3px 8px;font-size:11px;background:#F0FDF4;border-color:#BBF7D0;color:#15803D" onclick="archiveMantra('${m.id}','${m.name}')">restore to daily</button>`:`<button class="btn-sec" style="padding:3px 8px;font-size:11px" onclick="archiveMantra('${m.id}','${m.name}')">remove from daily</button>`}
+        <button class="btn-master-reset" onclick="deleteMantra('${m.id}','${m.name}')">delete</button>
+      </div></td>
+    </tr>`;
+  });
+  rows+=`<tr class="total-row"><td colspan="3">Filtered total</td><td>${filtDTgt}</td><td>${filtTotal.toLocaleString()}</td><td colspan="2"></td></tr>`;
+  if(activeFilter==='All'){
+    rows+=`<tr class="group-row"><td colspan="7">Purashcharana</td></tr>`;
+    activePurash.forEach(p=>{
+      const c=getTotal(p.id),pp=pct(c,p.target),th=pt(p.planet),pc=mpc(pp);
+      const inSpecial=specialList().some(x=>x.id===p.id);
+      const lk=inSpecial?'special':'purash';
+      rows+=`<tr>
+        <td>${p.planet} Purashcharana <span class="wk-m-tag">${inSpecial?'weekly special':'purashcharana'}</span></td>
+        <td><span class="badge" style="background:${th.bg};color:${th.text};border:1px solid ${th.border}">${p.planet}</span></td>
+        <td>${p.day}</td><td>${p.target.toLocaleString()}</td><td>${c.toLocaleString()}</td>
+        <td><span class="mini-bar"><span class="mini-fill" style="width:${pp}%;background:${pc}"></span></span><span style="font-size:11px;color:var(--text3);margin-left:6px">${pp}%</span></td>
+        <td><div class="tbl-actions">
+          <button class="btn-primary" style="padding:3px 9px;font-size:12px" onclick="addMaster1('${p.id}')">+1</button>
+          <input class="inp" style="width:42px" type="number" id="ti_${p.id}" placeholder="n" min="0"/>
+          <button class="btn-sec" style="padding:3px 8px;font-size:11px" onclick="addMasterInp('${p.id}','ti_${p.id}')">add</button>
+          <button class="btn-sec" style="padding:3px 8px;font-size:11px" onclick="openPurashModal('${lk}','${p.id}')">edit</button>
+          <button class="btn-master-reset" onclick="resetAllTime('${p.id}','${p.planet} Purashcharana')">reset all</button>
+          <button class="btn-master-reset" onclick="deletePurashItem('${lk}','${p.id}','${p.planet} Purashcharana')">delete</button>
+        </div></td>
+      </tr>`;
+    });
+    rows+=`<tr class="grand-row"><td colspan="3">Grand total — all chants</td><td></td><td>${(allM+allP).toLocaleString()}</td><td colspan="2"></td></tr>`;
+  }
+  document.getElementById('master-tbody').innerHTML=rows;
+}
+
+function setFilter(pl){activeFilter=pl;renderMaster();}
+function refresh(){
+  const active=document.querySelector('.page.active');
+  const p=active?active.id.replace('page-',''):'daily';
+  if(p==='daily')renderDaily();
+  else if(p==='monthly')renderMonthly();
+  else if(p==='purash')renderPurash();
+  else if(p==='special')renderSpecial();
+  else renderMaster();
+}
+function showPage(p){
+  commitPendingInput();
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.querySelector('.nav-btn[data-page="'+p+'"]').classList.add('active');
+  refresh();
+}
+function exportData(){
+  const data=JSON.stringify(store,null,2);
+  const blob=new Blob([data],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='mantra_tracker_backup_'+TODAY_KEY+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function importData(e){
+  const file=e.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const parsed=JSON.parse(ev.target.result);
+      if(!parsed.totals&&!parsed.days){alert('Invalid backup file.');return;}
+      if(!confirm('This will replace ALL current data with the backup.\n\nAre you sure?'))return;
+      store=parsed;
+      migrateStore();
+      refresh();
+      alert('Data imported successfully.');
+    }catch{alert('Could not read file. Make sure it is a valid backup JSON.');}
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+// wait for cloud data before first render
+store_loaded.then(()=>renderDaily());
+</script>
+</body>
+</html>
