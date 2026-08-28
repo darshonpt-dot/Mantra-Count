@@ -237,6 +237,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
       </select>
     </div>
     <div class="mform-row"><label>Note (optional)</label><input type="text" id="am-note" placeholder="e.g. Chant during Durga hora"></div>
+    <div class="mform-row"><label>Link — lyrics / video (optional)</label><input type="url" id="am-link" placeholder="https://..."></div>
     <div class="mform-row" id="am-purash-row"><label>Purashcharana target (optional)</label><input type="number" id="am-purash" min="0" placeholder="Leave blank to skip"></div>
     <div class="mform-actions">
       <button class="btn-sec" onclick="closeAddMantra()">Cancel</button>
@@ -262,12 +263,35 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
       </select>
     </div>
     <div class="mform-row"><label>Deadline (optional)</label><input type="text" id="pm-deadline" placeholder="e.g. Ongoing / By Dec 2026"></div>
+    <div class="mform-row"><label>Link — lyrics / video (optional)</label><input type="url" id="pm-link" placeholder="https://..."></div>
     <div class="mform-row"><label>After completion (optional)</label><input type="text" id="pm-after" placeholder="e.g. Revert to daily practice"></div>
     <div class="mform-actions">
       <button class="btn-sec" onclick="closePurashModal()">Cancel</button>
       <button class="btn-primary" onclick="savePurashModal()" id="pm-save">Save target</button>
     </div>
     <div class="mform-hint">Drag the ⠿ handle on any card to reorder priority. Order is saved automatically.</div>
+  </div>
+</div>
+
+<!-- ═══ Add / edit Monthly Ritual modal ═══ -->
+<div class="modal-overlay" id="ritualModal">
+  <div class="modal-box">
+    <h3 id="rm-title">Add monthly ritual</h3>
+    <div class="modal-sub" id="rm-sub">A recurring monthly observance — tracked by month/year, separate from daily and Purashcharana counts.</div>
+    <div class="mform-row"><label>Title *</label><input type="text" id="rm-name" placeholder="e.g. Amavasya — Pitru Tarpan"></div>
+    <div class="mform-row"><label>Occasion</label><input type="text" id="rm-occasion" placeholder="e.g. New Moon"></div>
+    <div class="mform-row"><label>Deity / Planet *</label><input type="text" id="rm-planet" placeholder="e.g. Pitru"></div>
+    <div class="mform-row"><label>Badge label</label><input type="text" id="rm-tag" placeholder="e.g. Pitru Tarpan"></div>
+    <div class="mform-row"><label>Mantra / text</label><textarea id="rm-mantra" placeholder="e.g. Om Pitru Devaya Namaha"></textarea></div>
+    <div class="mform-row"><label>Devanagari (optional)</label><input type="text" id="rm-deva" placeholder="ॐ पितृ देवाय नमः"></div>
+    <div class="mform-row"><label>Target *</label><input type="number" id="rm-target" min="1" placeholder="e.g. 1008"></div>
+    <div class="mform-row"><label>Link — lyrics / video (optional)</label><input type="url" id="rm-link" placeholder="https://..."></div>
+    <div class="mform-row"><label>Steps / notes (optional, one per line)</label><textarea id="rm-notes" placeholder="Face South...\nChant mantra x11...\n"></textarea></div>
+    <div class="mform-row"><label>Why this matters (optional)</label><textarea id="rm-why" placeholder="Short reasoning shown at the bottom of the card"></textarea></div>
+    <div class="mform-actions">
+      <button class="btn-sec" onclick="closeRitualModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveRitualModal()" id="rm-save">Add ritual</button>
+    </div>
   </div>
 </div>
 
@@ -318,7 +342,10 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 
 <!-- ═══ MONTHLY RITUALS ═══ -->
 <div id="page-monthly" class="page">
-  <div class="page-title">Monthly rituals</div>
+  <div class="page-head-row">
+    <div class="page-title" style="margin-bottom:0">Monthly rituals</div>
+    <button class="btn-primary" onclick="openRitualModal()">+ Add ritual</button>
+  </div>
   <div class="month-banner">these two rituals must happen every single month — non-negotiable for your chart (Amavasya birth + Moon gandanta + 8th lord MD).</div>
 
   <div class="month-select-row">
@@ -465,18 +492,18 @@ const specialSeed=[
   {id:'p7',planet:'Krishna',mantra:'Hare Krishna Mahamantra',                       target:16000,day:'All days', deadline:'Ongoing',        after:'Continue daily rounds as lifelong sadhana — placeholder target, edit anytime'},
 ];
 
-// Monthly ritual definitions (special monthly-only observances)
-const monthlyRituals=[
+// Monthly ritual seed definitions — only used to initialise store.ritualsList the first time.
+const monthlyRitualsSeed=[
   {
     id:'amavasya',
     title:'Amavasya — Pitru Tarpan',
     occasion:'New Moon',
     planet:'Pitru',
     tag:'Pitru Tarpan',
-    tagBg:'#F5F3FF',tagColor:'#3730A3',tagBorder:'#DDD6FE',
     mantra:'Om Pitru Devaya Namaha',
     devanagari:'ॐ पितृ देवाय नमः',
     target:11,
+    link:'',
     notes:[
       'Face South. Cup both hands. Offer water 3 times letting it pour over right thumb. Repeat 3 cycles.',
       'Chant mantra × 11 during each water offering.',
@@ -492,10 +519,10 @@ const monthlyRituals=[
     occasion:'4th day after Purnima (waning)',
     planet:'Ganesha',
     tag:'Ganesha Fast',
-    tagBg:'#FFF7ED',tagColor:'#7C2D12',tagBorder:'#FED7AA',
     mantra:'Om Gam Ganapataye Namaha',
     devanagari:'ॐ गं गणपतये नमः',
     target:1008,
+    link:'',
     notes:[
       'Fast from sunrise to moonrise — water and milk permitted, no food.',
       'Chant mantra × 1008 — spread across morning and evening sessions.',
@@ -553,6 +580,7 @@ function migrateStore(){
   if(!store.mantraList) store.mantraList=JSON.parse(JSON.stringify(mantraSeed));
   if(!store.purashList) store.purashList=JSON.parse(JSON.stringify(purashSeed));
   if(!store.specialList) store.specialList=JSON.parse(JSON.stringify(specialSeed));
+  if(!store.ritualsList) store.ritualsList=JSON.parse(JSON.stringify(monthlyRitualsSeed));
   // one-time migration from the older "customMantras" mechanic, if present
   if(store.customMantras && store.customMantras.length){
     store.customMantras.forEach(m=>store.mantraList.push(m));
@@ -565,6 +593,14 @@ function migrateStore(){
       dest.push({id:p.id,planet:p.planet,mantra:p.mantra,target:p.target,day:p.day,deadline:p.deadline||'Ongoing',after:p.after||'',linkedMantraId:p.linkedMantraId});
     });
     delete store.customPurash;
+  }
+  // one-time migration from an older prompt()-based per-ritual link store, if present
+  if(store.monthlyLinks){
+    Object.keys(store.monthlyLinks).forEach(rid=>{
+      const r=store.ritualsList.find(x=>x.id===rid);
+      if(r&&!r.link)r.link=store.monthlyLinks[rid];
+    });
+    delete store.monthlyLinks;
   }
   saveStore();
 }
@@ -650,6 +686,7 @@ function activeMantras(){return allMantras().filter(m=>!m.archived);}
 function purashList(){return store.purashList||[];}
 function specialList(){return store.specialList||[];}
 function allPurash(){return purashList().concat(specialList());} // used by Master Tracker totals only
+function ritualsList(){return store.ritualsList||[];}
 
 let amEditId=null;
 function openAddMantra(editId){
@@ -667,6 +704,7 @@ function openAddMantra(editId){
     document.getElementById('am-daily').value=item.daily;
     document.getElementById('am-days').value=item.days||'All days';
     document.getElementById('am-note').value=item.note||'';
+    document.getElementById('am-link').value=item.link||'';
     purashRow.style.display='none';
   } else {
     document.getElementById('am-modal-title').textContent='Add a mantra';
@@ -678,6 +716,7 @@ function openAddMantra(editId){
     document.getElementById('am-daily').value=108;
     document.getElementById('am-days').value='All days';
     document.getElementById('am-note').value='';
+    document.getElementById('am-link').value='';
     document.getElementById('am-purash').value='';
     purashRow.style.display='';
   }
@@ -692,15 +731,16 @@ function saveAddMantra(){
   const text=document.getElementById('am-text').value.trim()||'—';
   const days=document.getElementById('am-days').value;
   const note=document.getElementById('am-note').value.trim();
+  const link=document.getElementById('am-link').value.trim();
 
   if(amEditId){
     const item=allMantras().find(x=>x.id===amEditId);
-    if(item)Object.assign(item,{name,mantra:text,planet,daily,days,note});
+    if(item)Object.assign(item,{name,mantra:text,planet,daily,days,note,link});
   } else {
     const purashTarget=parseInt(document.getElementById('am-purash').value,10)||0;
     const id='custom_'+Date.now();
     if(!store.mantraList)store.mantraList=[];
-    store.mantraList.push({id,name,planet,mantra:text,daily,note,type:'Custom',days,custom:true});
+    store.mantraList.push({id,name,planet,mantra:text,daily,note,link,type:'Custom',days,custom:true});
     if(purashTarget>0){
       const dest = ['Vishnu','Nakshatra Devata','Krishna'].includes(planet) ? store.specialList : store.purashList;
       dest.push({id:'purash_'+Date.now(),planet,mantra:text,target:purashTarget,day:days,deadline:'Ongoing',after:'Linked to mantra "'+name+'" — edit or remove anytime.',linkedMantraId:id});
@@ -708,6 +748,19 @@ function saveAddMantra(){
   }
   saveStore();
   closeAddMantra();
+  refresh();
+}
+function duplicateMantra(id){
+  const list=allMantras();
+  const idx=list.findIndex(x=>x.id===id);
+  if(idx<0)return;
+  const copy=JSON.parse(JSON.stringify(list[idx]));
+  copy.id='custom_'+Date.now();
+  copy.name=copy.name+' (copy)';
+  copy.custom=true;
+  delete copy.archived;
+  list.splice(idx+1,0,copy);
+  saveStore();
   refresh();
 }
 function archiveMantra(id,name){
@@ -759,6 +812,7 @@ function openPurashModal(listKey,editId){
     document.getElementById('pm-target').value=item.target;
     document.getElementById('pm-day').value=item.day||'All days';
     document.getElementById('pm-deadline').value=item.deadline||'';
+    document.getElementById('pm-link').value=item.link||'';
     document.getElementById('pm-after').value=item.after||'';
   } else {
     document.getElementById('pm-title').textContent='Add Purashcharana target';
@@ -769,6 +823,7 @@ function openPurashModal(listKey,editId){
     document.getElementById('pm-target').value='';
     document.getElementById('pm-day').value='All days';
     document.getElementById('pm-deadline').value='Ongoing';
+    document.getElementById('pm-link').value='';
     document.getElementById('pm-after').value='';
   }
   document.getElementById('purashModal').classList.add('open');
@@ -781,13 +836,14 @@ function savePurashModal(){
   const mantraTxt=document.getElementById('pm-text').value.trim()||'—';
   const day=document.getElementById('pm-day').value;
   const deadline=document.getElementById('pm-deadline').value.trim()||'Ongoing';
+  const link=document.getElementById('pm-link').value.trim();
   const after=document.getElementById('pm-after').value.trim();
   const list = pmListKey==='special'?specialList():purashList();
   if(pmEditId){
     const item=list.find(x=>x.id===pmEditId);
-    if(item)Object.assign(item,{planet,mantra:mantraTxt,target,day,deadline,after});
+    if(item)Object.assign(item,{planet,mantra:mantraTxt,target,day,deadline,link,after});
   } else {
-    list.push({id:'purash_'+Date.now(),planet,mantra:mantraTxt,target,day,deadline,after});
+    list.push({id:'purash_'+Date.now(),planet,mantra:mantraTxt,target,day,deadline,link,after});
   }
   saveStore();
   closePurashModal();
@@ -798,6 +854,18 @@ function deletePurashItem(listKey,id,label){
   const list = listKey==='special'?specialList():purashList();
   const idx=list.findIndex(x=>x.id===id);
   if(idx>=0)list.splice(idx,1);
+  saveStore();
+  refresh();
+}
+function duplicatePurashItem(listKey,id){
+  const list = listKey==='special'?specialList():purashList();
+  const idx=list.findIndex(x=>x.id===id);
+  if(idx<0)return;
+  const copy=JSON.parse(JSON.stringify(list[idx]));
+  copy.id='purash_'+Date.now();
+  copy.planet=copy.planet+' (copy)';
+  delete copy.linkedMantraId;
+  list.splice(idx+1,0,copy);
   saveStore();
   refresh();
 }
@@ -863,8 +931,9 @@ document.addEventListener('click',function(e){
 });
 document.getElementById('addModal').addEventListener('click',function(e){if(e.target.id==='addModal')closeAddMantra();});
 document.getElementById('purashModal').addEventListener('click',function(e){if(e.target.id==='purashModal')closePurashModal();});
+document.getElementById('ritualModal').addEventListener('click',function(e){if(e.target.id==='ritualModal')closeRitualModal();});
 document.addEventListener('keydown',function(e){
-  if(e.key==='Escape'){closeAddMantra();closePurashModal();}
+  if(e.key==='Escape'){closeAddMantra();closePurashModal();closeRitualModal();}
 });
 
 function calShiftMonth(dir){
@@ -975,7 +1044,9 @@ function renderDaily(){
           <span class="wk-m-tag">${m.days==='All days'?'Every day':m.days}</span>
           <span class="wk-m-tag">Target ${m.daily}${m.id==='surya'?' (21 Sun)':''}</span>
           ${m.custom?`<span class="wk-m-tag">custom</span>`:''}
+          ${m.link?`<a href="${m.link}" target="_blank" rel="noopener" class="wk-m-tag" style="text-decoration:none;color:var(--accent);border-color:#BFDBFE">&#128279; lyrics/video</a>`:''}
           <span class="wk-m-tag" style="cursor:pointer" onclick="openAddMantra('${m.id}')">edit</span>
+          <span class="wk-m-tag" style="cursor:pointer" onclick="duplicateMantra('${m.id}')">duplicate</span>
           <span class="wk-m-tag" style="cursor:pointer;color:#92400E;border-color:#FDE68A" onclick="archiveMantra('${m.id}','${m.name}')">remove from daily</span>
           <span class="wk-m-tag" style="cursor:pointer;color:#9F1239;border-color:#FECDD3" onclick="deleteMantra('${m.id}','${m.name}')">delete permanently</span>
         </div>
@@ -990,19 +1061,21 @@ function renderDaily(){
 function renderMonthly(){
   const year=parseInt(document.getElementById('year-sel').value);
   const month=parseInt(document.getElementById('month-sel').value);
+  const list=ritualsList();
 
-  let totalDone=0;
-  const cards=monthlyRituals.map(r=>{
+  let totalDone=0,sumCnt=0,sumTgt=0;
+  const cards=list.map(r=>{
     const key=monthKey(r.id,year,month);
     const cnt=getMonthly(key);
     const pp=pct(cnt,r.target);
     const done=cnt>=r.target;
     if(done)totalDone++;
+    sumCnt+=cnt;sumTgt+=r.target;
     const th=pt(r.planet);
     const barColor=done?'#15803D':pp>=50?'#3B82F6':'#EAB308';
     return `<div class="m-ritual-card" style="border-left:3px solid ${th.border}">
       <div class="m-ritual-header">
-        <span class="m-occasion-tag" style="background:${r.tagBg};color:${r.tagColor};border:1px solid ${r.tagBorder}">${r.tag}</span>
+        <span class="m-occasion-tag" style="background:${th.bg};color:${th.text};border:1px solid ${th.border}">${r.tag}</span>
         <div class="m-ritual-title" style="margin-top:8px">${r.title}</div>
         <div class="m-ritual-sub">${r.occasion}</div>
         <div style="margin-top:12px"><span class="badge" style="background:${done?'#F0FDF4':'#F8FAFC'};color:${done?'#15803D':'var(--text3)'};border:1px solid ${done?'#BBF7D0':'var(--border)'}">${done?'✓ done':'pending'}</span></div>
@@ -1011,7 +1084,8 @@ function renderMonthly(){
         <div class="m-mantra-block">
           <div class="m-mantra-label">Mantra · target ${r.target.toLocaleString()}×</div>
           <div class="m-mantra-text">${r.mantra}</div>
-          <div class="m-mantra-devanagari">${r.devanagari}</div>
+          <div class="m-mantra-devanagari">${r.devanagari||''}</div>
+          ${r.link?`<a href="${r.link}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;font-size:11px;color:${th.text};text-decoration:none">&#128279; lyrics / video</a>`:''}
         </div>
         <div class="m-count-row">
           <span class="m-count-done">${cnt.toLocaleString()}</span>
@@ -1020,18 +1094,21 @@ function renderMonthly(){
           <span style="font-size:11px;color:var(--text3);margin-left:auto">${pp}%</span>
         </div>
         <div class="m-prog"><div class="m-prog-fill" style="width:${pp}%;background:${barColor}"></div></div>
-        <div class="m-btn-row">
+        <div class="m-btn-row" style="flex-wrap:wrap">
           <button class="btn-primary" onclick="addMonthly1('${r.id}')">+1</button>
           <input class="inp" type="number" id="mi_${r.id}" placeholder="n" min="0"/>
           <button class="btn-sec" onclick="addMonthly('${r.id}','mi_${r.id}')">add</button>
           <button class="btn-sec" onclick="setMonthlyDone('${r.id}')" style="background:#F0FDF4;border-color:#BBF7D0;color:#15803D">mark done</button>
           <button class="btn-day-reset" onclick="resetMonthly('${r.id}','${r.title}')">reset</button>
         </div>
+        <div class="m-btn-row">
+          <button class="btn-sec" onclick="openRitualModal('${r.id}')">edit</button>
+          <button class="btn-sec" onclick="duplicateRitual('${r.id}')">duplicate</button>
+          <button class="btn-master-reset" onclick="deleteRitual('${r.id}','${r.title}')">delete</button>
+        </div>
         <div class="m-note">
-          <ul style="padding-left:14px">
-            ${r.notes.map(n=>`<li>${n}</li>`).join('')}
-          </ul>
-          <div style="margin-top:8px;font-style:italic;color:var(--text2)">${r.why}</div>
+          ${r.notes&&r.notes.length?`<ul style="padding-left:14px">${r.notes.map(n=>`<li>${n}</li>`).join('')}</ul>`:''}
+          ${r.why?`<div style="margin-top:8px;font-style:italic;color:var(--text2)">${r.why}</div>`:''}
         </div>
       </div>
     </div>`;
@@ -1039,11 +1116,11 @@ function renderMonthly(){
 
   const statsHtml=`
     <div class="stats-row" style="margin-bottom:1.2rem">
-      <div class="stat-card purple"><div class="stat-lbl">${MONTHS[month]} ${year}</div><div class="stat-num">${totalDone} / ${monthlyRituals.length} done</div></div>
-      <div class="stat-card blue"><div class="stat-lbl">Amavasya Tarpan</div><div class="stat-num">${getMonthly(monthKey('amavasya',year,month))} / 11</div></div>
-      <div class="stat-card gold"><div class="stat-lbl">Sankashti Chants</div><div class="stat-num">${getMonthly(monthKey('sankashti',year,month)).toLocaleString()} / 1,008</div></div>
+      <div class="stat-card purple"><div class="stat-lbl">${MONTHS[month]} ${year}</div><div class="stat-num">${totalDone} / ${list.length} done</div></div>
+      <div class="stat-card blue"><div class="stat-lbl">Total chants this month</div><div class="stat-num">${sumCnt.toLocaleString()}</div></div>
+      <div class="stat-card gold"><div class="stat-lbl">Overall progress</div><div class="stat-num">${pct(sumCnt,sumTgt)}%</div></div>
     </div>`;
-  document.getElementById('monthly-grid').innerHTML=statsHtml+cards;
+  document.getElementById('monthly-grid').innerHTML=statsHtml+(cards||`<div style="font-size:13px;color:var(--text3);padding:1rem">No monthly rituals yet — click "+ Add ritual" above.</div>`);
 
   const daysInMonth=new Date(year,month+1,0).getDate();
   let mmRows='';
@@ -1094,8 +1171,87 @@ function setMonthlyDone(ritualId){
   const year=parseInt(document.getElementById('year-sel').value);
   const month=parseInt(document.getElementById('month-sel').value);
   const key=monthKey(ritualId,year,month);
-  const r=monthlyRituals.find(x=>x.id===ritualId);
+  const r=ritualsList().find(x=>x.id===ritualId);
   setMonthly(key,r.target);
+  renderMonthly();
+}
+
+// ── Add / edit / delete / duplicate Monthly Rituals ──
+let rmEditId=null;
+function openRitualModal(editId){
+  rmEditId=editId||null;
+  if(editId){
+    const r=ritualsList().find(x=>x.id===editId);
+    if(!r)return;
+    document.getElementById('rm-title').textContent='Edit monthly ritual';
+    document.getElementById('rm-sub').textContent='Update the details below.';
+    document.getElementById('rm-save').textContent='Save changes';
+    document.getElementById('rm-name').value=r.title;
+    document.getElementById('rm-occasion').value=r.occasion||'';
+    document.getElementById('rm-planet').value=r.planet;
+    document.getElementById('rm-tag').value=r.tag||'';
+    document.getElementById('rm-mantra').value=r.mantra||'';
+    document.getElementById('rm-deva').value=r.devanagari||'';
+    document.getElementById('rm-target').value=r.target;
+    document.getElementById('rm-link').value=r.link||'';
+    document.getElementById('rm-notes').value=(r.notes||[]).join('\n');
+    document.getElementById('rm-why').value=r.why||'';
+  } else {
+    document.getElementById('rm-title').textContent='Add monthly ritual';
+    document.getElementById('rm-sub').textContent='A recurring monthly observance — tracked by month/year, separate from daily and Purashcharana counts.';
+    document.getElementById('rm-save').textContent='Add ritual';
+    document.getElementById('rm-name').value='';
+    document.getElementById('rm-occasion').value='';
+    document.getElementById('rm-planet').value='';
+    document.getElementById('rm-tag').value='';
+    document.getElementById('rm-mantra').value='';
+    document.getElementById('rm-deva').value='';
+    document.getElementById('rm-target').value='';
+    document.getElementById('rm-link').value='';
+    document.getElementById('rm-notes').value='';
+    document.getElementById('rm-why').value='';
+  }
+  document.getElementById('ritualModal').classList.add('open');
+}
+function closeRitualModal(){document.getElementById('ritualModal').classList.remove('open');}
+function saveRitualModal(){
+  const title=document.getElementById('rm-name').value.trim();
+  const planet=document.getElementById('rm-planet').value.trim();
+  const target=parseInt(document.getElementById('rm-target').value,10)||0;
+  if(!title||!planet||target<=0){alert('Please fill in Title, Deity/Planet, and a Target greater than 0.');return;}
+  const occasion=document.getElementById('rm-occasion').value.trim();
+  const tag=document.getElementById('rm-tag').value.trim()||planet;
+  const mantra=document.getElementById('rm-mantra').value.trim()||'—';
+  const devanagari=document.getElementById('rm-deva').value.trim();
+  const link=document.getElementById('rm-link').value.trim();
+  const notes=document.getElementById('rm-notes').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const why=document.getElementById('rm-why').value.trim();
+  if(rmEditId){
+    const r=ritualsList().find(x=>x.id===rmEditId);
+    if(r)Object.assign(r,{title,occasion,planet,tag,mantra,devanagari,target,link,notes,why});
+  } else {
+    if(!store.ritualsList)store.ritualsList=[];
+    store.ritualsList.push({id:'ritual_'+Date.now(),title,occasion,planet,tag,mantra,devanagari,target,link,notes,why});
+  }
+  saveStore();
+  closeRitualModal();
+  renderMonthly();
+}
+function deleteRitual(id,title){
+  if(!confirm('Delete "'+title+'"?\n\nThis removes the ritual card entirely. Its logged monthly counts stay in your data but won\'t be shown anywhere.\n\nThis cannot be undone.'))return;
+  if(store.ritualsList)store.ritualsList=store.ritualsList.filter(r=>r.id!==id);
+  saveStore();
+  renderMonthly();
+}
+function duplicateRitual(id){
+  const list=ritualsList();
+  const idx=list.findIndex(r=>r.id===id);
+  if(idx<0)return;
+  const copy=JSON.parse(JSON.stringify(list[idx]));
+  copy.id='ritual_'+Date.now();
+  copy.title=copy.title+' (copy)';
+  list.splice(idx+1,0,copy);
+  saveStore();
   renderMonthly();
 }
 
@@ -1122,6 +1278,7 @@ function purashCardHTML(p, idx, listKey){
         <span class="badge" style="background:${done?'#F0FDF4':'#EFF6FF'};color:${done?'#15803D':'#1E40AF'};border:1px solid ${done?'#BBF7D0':'#BFDBFE'}">${ordinal(idx+1)} &middot; ${done?'complete':'active'}</span>
       </div>
       <div class="p-mantra">${p.mantra}</div>
+      ${p.link?`<a href="${p.link}" target="_blank" rel="noopener" style="font-size:11px;color:var(--accent);display:inline-block;margin-bottom:8px;text-decoration:none">&#128279; lyrics / video</a>`:''}
       <div class="p-meta">
         <div class="p-meta-item">Day: <strong>${p.day}</strong></div>
         <div class="p-meta-item">Deadline: <strong>${p.deadline}</strong></div>
@@ -1138,6 +1295,7 @@ function purashCardHTML(p, idx, listKey){
         <input class="inp" type="number" id="pi_${p.id}" placeholder="n" min="0"/>
         <button class="btn-sec" onclick="addMasterInp('${p.id}','pi_${p.id}')">add</button>
         <button class="btn-sec" onclick="openPurashModal('${listKey}','${p.id}')">edit</button>
+        <button class="btn-sec" onclick="duplicatePurashItem('${listKey}','${p.id}')">duplicate</button>
         <button class="btn-master-reset" onclick="resetAllTime('${p.id}','${p.planet} Purashcharana')">reset count</button>
         <button class="btn-master-reset" onclick="deletePurashItem('${listKey}','${p.id}','${p.planet} Purashcharana')">delete</button>
       </div>
@@ -1194,7 +1352,7 @@ function renderMaster(){
     const c=getTotal(m.id),p=pct(c,m.daily),th=pt(m.planet),pc=mpc(p);
     if(activeFilter==='All'&&m.planet!==prev){rows+=`<tr class="group-row"><td colspan="7">${m.planet}</td></tr>`;prev=m.planet;}
     rows+=`<tr${m.archived?' style="opacity:0.6"':''}>
-      <td>${m.name}${m.custom?' <span class="wk-m-tag">custom</span>':''}${m.archived?' <span class="wk-m-tag" style="color:#92400E;border-color:#FDE68A">archived — off daily grid</span>':''}</td>
+      <td>${m.name}${m.link?` <a href="${m.link}" target="_blank" rel="noopener" title="lyrics/video">&#128279;</a>`:''}${m.custom?' <span class="wk-m-tag">custom</span>':''}${m.archived?' <span class="wk-m-tag" style="color:#92400E;border-color:#FDE68A">archived — off daily grid</span>':''}</td>
       <td><span class="badge" style="background:${th.bg};color:${th.text};border:1px solid ${th.border}">${m.planet}</span></td>
       <td>${m.days}</td><td>${m.daily}</td><td>${c.toLocaleString()}</td>
       <td><span class="mini-bar"><span class="mini-fill" style="width:${p}%;background:${pc}"></span></span><span style="font-size:11px;color:var(--text3);margin-left:6px">${p}%</span></td>
@@ -1204,6 +1362,7 @@ function renderMaster(){
         <button class="btn-sec" style="padding:3px 8px;font-size:11px" onclick="addMasterInp('${m.id}','ti_${m.id}')">add</button>
         <button class="btn-master-reset" onclick="resetAllTime('${m.id}','${m.name}')">reset all</button>
         <button class="btn-sec" style="padding:3px 8px;font-size:11px" onclick="openAddMantra('${m.id}')">edit</button>
+        <button class="btn-sec" style="padding:3px 8px;font-size:11px" onclick="duplicateMantra('${m.id}')">duplicate</button>
         ${m.archived?`<button class="btn-sec" style="padding:3px 8px;font-size:11px;background:#F0FDF4;border-color:#BBF7D0;color:#15803D" onclick="archiveMantra('${m.id}','${m.name}')">restore to daily</button>`:`<button class="btn-sec" style="padding:3px 8px;font-size:11px" onclick="archiveMantra('${m.id}','${m.name}')">remove from daily</button>`}
         <button class="btn-master-reset" onclick="deleteMantra('${m.id}','${m.name}')">delete</button>
       </div></td>
@@ -1217,7 +1376,7 @@ function renderMaster(){
       const inSpecial=specialList().some(x=>x.id===p.id);
       const lk=inSpecial?'special':'purash';
       rows+=`<tr>
-        <td>${p.planet} Purashcharana <span class="wk-m-tag">${inSpecial?'weekly special':'purashcharana'}</span></td>
+        <td>${p.planet} Purashcharana${p.link?` <a href="${p.link}" target="_blank" rel="noopener" title="lyrics/video">&#128279;</a>`:''} <span class="wk-m-tag">${inSpecial?'weekly special':'purashcharana'}</span></td>
         <td><span class="badge" style="background:${th.bg};color:${th.text};border:1px solid ${th.border}">${p.planet}</span></td>
         <td>${p.day}</td><td>${p.target.toLocaleString()}</td><td>${c.toLocaleString()}</td>
         <td><span class="mini-bar"><span class="mini-fill" style="width:${pp}%;background:${pc}"></span></span><span style="font-size:11px;color:var(--text3);margin-left:6px">${pp}%</span></td>
@@ -1226,6 +1385,7 @@ function renderMaster(){
           <input class="inp" style="width:42px" type="number" id="ti_${p.id}" placeholder="n" min="0"/>
           <button class="btn-sec" style="padding:3px 8px;font-size:11px" onclick="addMasterInp('${p.id}','ti_${p.id}')">add</button>
           <button class="btn-sec" style="padding:3px 8px;font-size:11px" onclick="openPurashModal('${lk}','${p.id}')">edit</button>
+          <button class="btn-sec" style="padding:3px 8px;font-size:11px" onclick="duplicatePurashItem('${lk}','${p.id}')">duplicate</button>
           <button class="btn-master-reset" onclick="resetAllTime('${p.id}','${p.planet} Purashcharana')">reset all</button>
           <button class="btn-master-reset" onclick="deletePurashItem('${lk}','${p.id}','${p.planet} Purashcharana')">delete</button>
         </div></td>
