@@ -284,7 +284,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
     <div class="mform-row"><label>Badge label</label><input type="text" id="rm-tag" placeholder="e.g. Pitru Tarpan"></div>
     <div class="mform-row"><label>Mantra / text</label><textarea id="rm-mantra" placeholder="e.g. Om Pitru Devaya Namaha"></textarea></div>
     <div class="mform-row"><label>Devanagari (optional)</label><input type="text" id="rm-deva" placeholder="ॐ पितृ देवाय नमः"></div>
-    <div class="mform-row"><label>Target *</label><input type="number" id="rm-target" min="1" placeholder="e.g. 1008"></div>
+    <div class="mform-row"><label>Target (optional)</label><input type="number" id="rm-target" min="0" placeholder="Leave blank for an open running tally — no fixed goal"></div>
     <div class="mform-row"><label>Link — lyrics / video (optional)</label><input type="url" id="rm-link" placeholder="https://..."></div>
     <div class="mform-row"><label>Steps / notes (optional, one per line)</label><textarea id="rm-notes" placeholder="Face South...\nChant mantra x11...\n"></textarea></div>
     <div class="mform-row"><label>Why this matters (optional)</label><textarea id="rm-why" placeholder="Short reasoning shown at the bottom of the card"></textarea></div>
@@ -1063,14 +1063,15 @@ function renderMonthly(){
   const month=parseInt(document.getElementById('month-sel').value);
   const list=ritualsList();
 
-  let totalDone=0,sumCnt=0,sumTgt=0;
+  let totalDone=0,totalWithTarget=0,sumCnt=0,sumTgt=0,allCnt=0;
   const cards=list.map(r=>{
     const key=monthKey(r.id,year,month);
     const cnt=getMonthly(key);
-    const pp=pct(cnt,r.target);
-    const done=cnt>=r.target;
-    if(done)totalDone++;
-    sumCnt+=cnt;sumTgt+=r.target;
+    const hasTarget=r.target>0;
+    const pp=hasTarget?pct(cnt,r.target):0;
+    const done=hasTarget&&cnt>=r.target;
+    allCnt+=cnt;
+    if(hasTarget){totalWithTarget++;sumCnt+=cnt;sumTgt+=r.target;if(done)totalDone++;}
     const th=pt(r.planet);
     const barColor=done?'#15803D':pp>=50?'#3B82F6':'#EAB308';
     return `<div class="m-ritual-card" style="border-left:3px solid ${th.border}">
@@ -1078,27 +1079,25 @@ function renderMonthly(){
         <span class="m-occasion-tag" style="background:${th.bg};color:${th.text};border:1px solid ${th.border}">${r.tag}</span>
         <div class="m-ritual-title" style="margin-top:8px">${r.title}</div>
         <div class="m-ritual-sub">${r.occasion}</div>
-        <div style="margin-top:12px"><span class="badge" style="background:${done?'#F0FDF4':'#F8FAFC'};color:${done?'#15803D':'var(--text3)'};border:1px solid ${done?'#BBF7D0':'var(--border)'}">${done?'✓ done':'pending'}</span></div>
+        <div style="margin-top:12px">${hasTarget?`<span class="badge" style="background:${done?'#F0FDF4':'#F8FAFC'};color:${done?'#15803D':'var(--text3)'};border:1px solid ${done?'#BBF7D0':'var(--border)'}">${done?'✓ done':'pending'}</span>`:`<span class="badge" style="background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE">open tally</span>`}</div>
       </div>
       <div class="m-ritual-body">
         <div class="m-mantra-block">
-          <div class="m-mantra-label">Mantra · target ${r.target.toLocaleString()}×</div>
+          <div class="m-mantra-label">Mantra${hasTarget?` · target ${r.target.toLocaleString()}×`:' · no fixed target — running tally'}</div>
           <div class="m-mantra-text">${r.mantra}</div>
           <div class="m-mantra-devanagari">${r.devanagari||''}</div>
           ${r.link?`<a href="${r.link}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;font-size:11px;color:${th.text};text-decoration:none">&#128279; lyrics / video</a>`:''}
         </div>
         <div class="m-count-row">
           <span class="m-count-done">${cnt.toLocaleString()}</span>
-          <span class="m-count-sep">/</span>
-          <span class="m-count-target"><strong>${r.target.toLocaleString()}</strong> target</span>
-          <span style="font-size:11px;color:var(--text3);margin-left:auto">${pp}%</span>
+          ${hasTarget?`<span class="m-count-sep">/</span><span class="m-count-target"><strong>${r.target.toLocaleString()}</strong> target</span><span style="font-size:11px;color:var(--text3);margin-left:auto">${pp}%</span>`:`<span style="font-size:12px;color:var(--text3);margin-left:8px">logged so far</span>`}
         </div>
-        <div class="m-prog"><div class="m-prog-fill" style="width:${pp}%;background:${barColor}"></div></div>
+        ${hasTarget?`<div class="m-prog"><div class="m-prog-fill" style="width:${pp}%;background:${barColor}"></div></div>`:''}
         <div class="m-btn-row" style="flex-wrap:wrap">
           <button class="btn-primary" onclick="addMonthly1('${r.id}')">+1</button>
           <input class="inp" type="number" id="mi_${r.id}" placeholder="n" min="0"/>
           <button class="btn-sec" onclick="addMonthly('${r.id}','mi_${r.id}')">add</button>
-          <button class="btn-sec" onclick="setMonthlyDone('${r.id}')" style="background:#F0FDF4;border-color:#BBF7D0;color:#15803D">mark done</button>
+          ${hasTarget?`<button class="btn-sec" onclick="setMonthlyDone('${r.id}')" style="background:#F0FDF4;border-color:#BBF7D0;color:#15803D">mark done</button>`:''}
           <button class="btn-day-reset" onclick="resetMonthly('${r.id}','${r.title}')">reset</button>
         </div>
         <div class="m-btn-row">
@@ -1116,9 +1115,9 @@ function renderMonthly(){
 
   const statsHtml=`
     <div class="stats-row" style="margin-bottom:1.2rem">
-      <div class="stat-card purple"><div class="stat-lbl">${MONTHS[month]} ${year}</div><div class="stat-num">${totalDone} / ${list.length} done</div></div>
-      <div class="stat-card blue"><div class="stat-lbl">Total chants this month</div><div class="stat-num">${sumCnt.toLocaleString()}</div></div>
-      <div class="stat-card gold"><div class="stat-lbl">Overall progress</div><div class="stat-num">${pct(sumCnt,sumTgt)}%</div></div>
+      <div class="stat-card purple"><div class="stat-lbl">${MONTHS[month]} ${year}</div><div class="stat-num">${totalDone} / ${totalWithTarget} done</div></div>
+      <div class="stat-card blue"><div class="stat-lbl">Total chants this month</div><div class="stat-num">${allCnt.toLocaleString()}</div></div>
+      <div class="stat-card gold"><div class="stat-lbl">Progress (targeted rituals)</div><div class="stat-num">${pct(sumCnt,sumTgt)}%</div></div>
     </div>`;
   document.getElementById('monthly-grid').innerHTML=statsHtml+(cards||`<div style="font-size:13px;color:var(--text3);padding:1rem">No monthly rituals yet — click "+ Add ritual" above.</div>`);
 
@@ -1172,6 +1171,7 @@ function setMonthlyDone(ritualId){
   const month=parseInt(document.getElementById('month-sel').value);
   const key=monthKey(ritualId,year,month);
   const r=ritualsList().find(x=>x.id===ritualId);
+  if(!r||!(r.target>0))return; // no fixed target — "mark done" doesn't apply
   setMonthly(key,r.target);
   renderMonthly();
 }
@@ -1192,7 +1192,7 @@ function openRitualModal(editId){
     document.getElementById('rm-tag').value=r.tag||'';
     document.getElementById('rm-mantra').value=r.mantra||'';
     document.getElementById('rm-deva').value=r.devanagari||'';
-    document.getElementById('rm-target').value=r.target;
+    document.getElementById('rm-target').value=r.target>0?r.target:'';
     document.getElementById('rm-link').value=r.link||'';
     document.getElementById('rm-notes').value=(r.notes||[]).join('\n');
     document.getElementById('rm-why').value=r.why||'';
@@ -1218,7 +1218,7 @@ function saveRitualModal(){
   const title=document.getElementById('rm-name').value.trim();
   const planet=document.getElementById('rm-planet').value.trim();
   const target=parseInt(document.getElementById('rm-target').value,10)||0;
-  if(!title||!planet||target<=0){alert('Please fill in Title, Deity/Planet, and a Target greater than 0.');return;}
+  if(!title||!planet){alert('Please fill in Title and Deity/Planet.');return;}
   const occasion=document.getElementById('rm-occasion').value.trim();
   const tag=document.getElementById('rm-tag').value.trim()||planet;
   const mantra=document.getElementById('rm-mantra').value.trim()||'—';
