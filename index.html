@@ -236,6 +236,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
         <option>Thursday</option><option>Friday</option><option>Saturday</option>
       </select>
     </div>
+    <div class="mform-row"><label>Page</label><select id="am-page"></select></div>
     <div class="mform-row"><label>Note (optional)</label><input type="text" id="am-note" placeholder="e.g. Chant during Durga hora"></div>
     <div class="mform-row"><label>Link — lyrics / video (optional)</label><input type="url" id="am-link" placeholder="https://..."></div>
     <div class="mform-row" id="am-purash-row"><label>Purashcharana target (optional)</label><input type="number" id="am-purash" min="0" placeholder="Leave blank to skip"></div>
@@ -295,21 +296,44 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
   </div>
 </div>
 
-<div class="nav-tabs">
-  <button class="nav-btn active" data-page="daily" onclick="showPage('daily')">Daily dashboard</button>
-  <button class="nav-btn" data-page="monthly" onclick="showPage('monthly')">Monthly rituals</button>
-  <button class="nav-btn" data-page="purash" onclick="showPage('purash')">Purashcharana</button>
-  <button class="nav-btn" data-page="special" onclick="showPage('special')">Weekly special</button>
-  <button class="nav-btn" data-page="master" onclick="showPage('master')">Master tracker</button>
+<!-- ═══ Move mantra modal ═══ -->
+<div class="modal-overlay" id="moveModal">
+  <div class="modal-box">
+    <h3>Move mantra</h3>
+    <div class="modal-sub" id="mv-sub">Choose the page this mantra should appear on. Its counts and history move with it — nothing is lost.</div>
+    <div class="mform-row"><label>Move to page</label><select id="mv-page"></select></div>
+    <div class="mform-actions">
+      <button class="btn-sec" onclick="closeMoveModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveMove()">Move</button>
+    </div>
+  </div>
 </div>
+
+<!-- ═══ New / rename page modal ═══ -->
+<div class="modal-overlay" id="pageModal">
+  <div class="modal-box">
+    <h3 id="pg-title">New page</h3>
+    <div class="modal-sub">A page is its own weekly grid, like the Daily dashboard. Move any mantra onto it with the "move" button.</div>
+    <div class="mform-row"><label>Page name *</label><input type="text" id="pg-name" placeholder="e.g. Daily beej"></div>
+    <div class="mform-actions">
+      <button class="btn-sec" onclick="closePageModal()">Cancel</button>
+      <button class="btn-primary" onclick="savePageModal()" id="pg-save">Create page</button>
+    </div>
+  </div>
+</div>
+
+<div class="nav-tabs" id="nav-tabs"></div>
 
 <!-- ═══ DAILY (weekly grid) ═══ -->
 <div id="page-daily" class="page active">
   <div class="page-head-row">
-    <div class="page-title" style="margin-bottom:0">Daily dashboard</div>
-    <button class="btn-primary" onclick="openAddMantra()">+ Add mantra</button>
+    <div class="page-title" style="margin-bottom:0" id="grid-title">Daily dashboard</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span id="grid-tools" style="display:inline-flex;gap:8px"></span>
+      <button class="btn-primary" onclick="openAddMantra()">+ Add mantra</button>
+    </div>
   </div>
-  <div style="font-size:13px;color:var(--text3);margin-bottom:1.2rem">Every mantra, every day of the week, one view. Use the arrows to move between weeks — nothing is hidden by day anymore.</div>
+  <div style="font-size:13px;color:var(--text3);margin-bottom:1.2rem" id="grid-sub">Every mantra, every day of the week, one view. Use the arrows to move between weeks — nothing is hidden by day anymore.</div>
 
   <div class="date-nav" id="date-nav">
     <button class="arr-btn" id="btn-prev" onclick="changeWeek(-1)">&#8592;</button>
@@ -577,6 +601,7 @@ async function loadStore(){
 }
 
 function migrateStore(){
+  if(!store.pages) store.pages=[{id:'beej',name:'Daily beej'}];
   if(!store.mantraList) store.mantraList=JSON.parse(JSON.stringify(mantraSeed));
   if(!store.purashList) store.purashList=JSON.parse(JSON.stringify(purashSeed));
   if(!store.specialList) store.specialList=JSON.parse(JSON.stringify(specialSeed));
@@ -682,6 +707,27 @@ function pct(c,t){return t>0?Math.min(100,Math.round(c/t*100)):0;}
 function allMantras(){return store.mantraList||[];}
 // mantras still shown/logged in the Daily Dashboard weekly grid (excludes archived ones)
 function activeMantras(){return allMantras().filter(m=>!m.archived);}
+
+// ── Pages: Daily dashboard + any number of your own weekly-grid pages ──
+let currentPageKey='daily';
+let currentGridPage='daily';
+function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function pagesList(){return store.pages||[];}
+function pageName(id){if(id==='daily')return 'Daily dashboard';const pg=pagesList().find(x=>x.id===id);return pg?pg.name:'Daily dashboard';}
+function mantraPage(m){return (m.page&&pagesList().some(x=>x.id===m.page))?m.page:'daily';}
+function pageMantras(pid){return activeMantras().filter(m=>mantraPage(m)===pid);}
+function renderNav(){
+  let h=`<button class="nav-btn${currentPageKey==='daily'?' active':''}" data-page="daily" onclick="showPage('daily')">Daily dashboard</button>`;
+  pagesList().forEach(pg=>{
+    const key='grid:'+pg.id;
+    h+=`<button class="nav-btn${currentPageKey===key?' active':''}" data-page="${key}" onclick="showPage('${key}')">${esc(pg.name)}</button>`;
+  });
+  [['monthly','Monthly rituals'],['purash','Purashcharana'],['special','Weekly special'],['master','Master tracker']].forEach(([k,l])=>{
+    h+=`<button class="nav-btn${currentPageKey===k?' active':''}" data-page="${k}" onclick="showPage('${k}')">${l}</button>`;
+  });
+  h+=`<button class="nav-btn" style="color:var(--accent)" onclick="openPageModal()">+ New page</button>`;
+  document.getElementById('nav-tabs').innerHTML=h;
+}
 // ── Purashcharana lists ──
 function purashList(){return store.purashList||[];}
 function specialList(){return store.specialList||[];}
@@ -689,6 +735,79 @@ function allPurash(){return purashList().concat(specialList());} // used by Mast
 function ritualsList(){return store.ritualsList||[];}
 
 let amEditId=null;
+function fillPageSelect(selId,selected){
+  const opts=[{id:'daily',name:'Daily dashboard'}].concat(pagesList());
+  document.getElementById(selId).innerHTML=opts.map(o=>`<option value="${esc(o.id)}"${o.id===selected?' selected':''}>${esc(o.name)}</option>`).join('');
+}
+// ── Move a mantra to another page ──
+let mvId=null;
+function openMoveModal(id){
+  const m=allMantras().find(x=>x.id===id);
+  if(!m)return;
+  mvId=id;
+  document.getElementById('mv-sub').textContent='Move "'+m.name+'" to another page. Its counts and history move with it — nothing is lost.';
+  fillPageSelect('mv-page',mantraPage(m));
+  document.getElementById('moveModal').classList.add('open');
+}
+function closeMoveModal(){document.getElementById('moveModal').classList.remove('open');}
+function saveMove(){
+  const m=allMantras().find(x=>x.id===mvId);
+  if(m)m.page=document.getElementById('mv-page').value||'daily';
+  saveStore();
+  closeMoveModal();
+  refresh();
+}
+// ── Create / rename / delete your own pages ──
+let pgEditId=null;
+function openPageModal(editId){
+  pgEditId=editId||null;
+  if(editId){
+    document.getElementById('pg-title').textContent='Rename page';
+    document.getElementById('pg-save').textContent='Save name';
+    document.getElementById('pg-name').value=pageName(editId);
+  } else {
+    document.getElementById('pg-title').textContent='New page';
+    document.getElementById('pg-save').textContent='Create page';
+    document.getElementById('pg-name').value='';
+  }
+  document.getElementById('pageModal').classList.add('open');
+  setTimeout(()=>document.getElementById('pg-name').focus(),50);
+}
+function closePageModal(){document.getElementById('pageModal').classList.remove('open');}
+function savePageModal(){
+  const name=document.getElementById('pg-name').value.trim();
+  if(!name){alert('Please give the page a name.');return;}
+  if(!store.pages)store.pages=[];
+  if(pgEditId){
+    const pg=store.pages.find(x=>x.id===pgEditId);
+    if(pg)pg.name=name;
+    saveStore();closePageModal();renderNav();renderDaily();
+  } else {
+    const id='page_'+Date.now();
+    store.pages.push({id,name});
+    saveStore();closePageModal();
+    showPage('grid:'+id);
+  }
+}
+function deletePage(id){
+  const n=allMantras().filter(m=>m.page===id).length;
+  if(!confirm('Delete the page "'+pageName(id)+'"?\n\n'+(n?n+' mantra'+(n>1?'s':'')+' on it will move back to the Daily dashboard — nothing is deleted.':'The page is empty.')))return;
+  allMantras().forEach(m=>{if(m.page===id)m.page='daily';});
+  store.pages=(store.pages||[]).filter(x=>x.id!==id);
+  saveStore();
+  showPage('daily');
+}
+// ── Move a Purashcharana card between the Purashcharana and Weekly special tabs ──
+function movePurashItem(listKey,id){
+  const from=listKey==='special'?specialList():purashList();
+  const to=listKey==='special'?purashList():specialList();
+  const idx=from.findIndex(x=>x.id===id);
+  if(idx<0)return;
+  to.push(from.splice(idx,1)[0]);
+  saveStore();
+  refresh();
+}
+
 function openAddMantra(editId){
   amEditId=editId||null;
   const purashRow=document.getElementById('am-purash-row');
@@ -705,6 +824,7 @@ function openAddMantra(editId){
     document.getElementById('am-days').value=item.days||'All days';
     document.getElementById('am-note').value=item.note||'';
     document.getElementById('am-link').value=item.link||'';
+    fillPageSelect('am-page',mantraPage(item));
     purashRow.style.display='none';
   } else {
     document.getElementById('am-modal-title').textContent='Add a mantra';
@@ -718,6 +838,7 @@ function openAddMantra(editId){
     document.getElementById('am-note').value='';
     document.getElementById('am-link').value='';
     document.getElementById('am-purash').value='';
+    fillPageSelect('am-page',currentGridPage);
     purashRow.style.display='';
   }
   document.getElementById('addModal').classList.add('open');
@@ -732,15 +853,16 @@ function saveAddMantra(){
   const days=document.getElementById('am-days').value;
   const note=document.getElementById('am-note').value.trim();
   const link=document.getElementById('am-link').value.trim();
+  const page=document.getElementById('am-page').value||'daily';
 
   if(amEditId){
     const item=allMantras().find(x=>x.id===amEditId);
-    if(item)Object.assign(item,{name,mantra:text,planet,daily,days,note,link});
+    if(item)Object.assign(item,{name,mantra:text,planet,daily,days,note,link,page});
   } else {
     const purashTarget=parseInt(document.getElementById('am-purash').value,10)||0;
     const id='custom_'+Date.now();
     if(!store.mantraList)store.mantraList=[];
-    store.mantraList.push({id,name,planet,mantra:text,daily,note,link,type:'Custom',days,custom:true});
+    store.mantraList.push({id,name,planet,mantra:text,daily,note,link,type:'Custom',days,custom:true,page});
     if(purashTarget>0){
       const dest = ['Vishnu','Nakshatra Devata','Krishna'].includes(planet) ? store.specialList : store.purashList;
       dest.push({id:'purash_'+Date.now(),planet,mantra:text,target:purashTarget,day:days,deadline:'Ongoing',after:'Linked to mantra "'+name+'" — edit or remove anytime.',linkedMantraId:id});
@@ -932,8 +1054,11 @@ document.addEventListener('click',function(e){
 document.getElementById('addModal').addEventListener('click',function(e){if(e.target.id==='addModal')closeAddMantra();});
 document.getElementById('purashModal').addEventListener('click',function(e){if(e.target.id==='purashModal')closePurashModal();});
 document.getElementById('ritualModal').addEventListener('click',function(e){if(e.target.id==='ritualModal')closeRitualModal();});
+document.getElementById('moveModal').addEventListener('click',function(e){if(e.target.id==='moveModal')closeMoveModal();});
+document.getElementById('pageModal').addEventListener('click',function(e){if(e.target.id==='pageModal')closePageModal();});
+document.getElementById('pg-name').addEventListener('keydown',function(e){if(e.key==='Enter')savePageModal();});
 document.addEventListener('keydown',function(e){
-  if(e.key==='Escape'){closeAddMantra();closePurashModal();closeRitualModal();}
+  if(e.key==='Escape'){closeAddMantra();closePurashModal();closeRitualModal();closeMoveModal();closePageModal();}
 });
 
 function calShiftMonth(dir){
@@ -989,8 +1114,17 @@ function renderDaily(){
   document.getElementById('btn-next').disabled=!(weekAnchor<startOfWeek(TODAY));
   document.getElementById('btn-today').style.display=(dk(weekAnchor)===dk(startOfWeek(TODAY)))?'none':'inline-block';
 
+  if(currentGridPage!=='daily'&&!pagesList().some(x=>x.id===currentGridPage)){currentGridPage='daily';currentPageKey='daily';renderNav();}
+  const isCustomPage=currentGridPage!=='daily';
+  document.getElementById('grid-title').textContent=pageName(currentGridPage);
+  document.getElementById('grid-sub').textContent=isCustomPage
+    ? 'Your own page — same weekly grid as the Daily dashboard. Use "move" on any mantra row to send it to another page.'
+    : 'Every mantra, every day of the week, one view. Use the arrows to move between weeks — nothing is hidden by day anymore.';
+  document.getElementById('grid-tools').innerHTML=isCustomPage
+    ? `<button class="btn-sec" onclick="openPageModal('${currentGridPage}')">rename page</button><button class="btn-master-reset" onclick="deletePage('${currentGridPage}')">delete page</button>`
+    : '';
   const containsToday=dates.some(d=>dk(d)===TODAY_KEY);
-  const activeM=activeMantras();
+  const activeM=pageMantras(currentGridPage);
   let weekTotal=0,todayDone=0,todayCount=0;
   activeM.forEach(m=>{
     dates.forEach(d=>{weekTotal+=getDC(m.id,dk(d));});
@@ -1046,6 +1180,7 @@ function renderDaily(){
           ${m.custom?`<span class="wk-m-tag">custom</span>`:''}
           ${m.link?`<a href="${m.link}" target="_blank" rel="noopener" class="wk-m-tag" style="text-decoration:none;color:var(--accent);border-color:#BFDBFE">&#128279; lyrics/video</a>`:''}
           <span class="wk-m-tag" style="cursor:pointer" onclick="openAddMantra('${m.id}')">edit</span>
+          <span class="wk-m-tag" style="cursor:pointer;color:var(--accent);border-color:#BFDBFE" onclick="openMoveModal('${m.id}')">move</span>
           <span class="wk-m-tag" style="cursor:pointer" onclick="duplicateMantra('${m.id}')">duplicate</span>
           <span class="wk-m-tag" style="cursor:pointer;color:#92400E;border-color:#FDE68A" onclick="archiveMantra('${m.id}','${m.name}')">remove from daily</span>
           <span class="wk-m-tag" style="cursor:pointer;color:#9F1239;border-color:#FECDD3" onclick="deleteMantra('${m.id}','${m.name}')">delete permanently</span>
@@ -1055,6 +1190,7 @@ function renderDaily(){
       <td class="wk-total-cell">${rowTotal}</td>
     </tr>`;
   });
+  if(!activeM.length){rows=`<tr><td colspan="10" style="padding:28px;text-align:center;color:var(--text3);font-size:13px">No mantras on this page yet. Click "+ Add mantra", or use "move" on a mantra in another page.</td></tr>`;}
   document.getElementById('wk-tbody').innerHTML=rows;
 }
 
@@ -1296,6 +1432,7 @@ function purashCardHTML(p, idx, listKey){
         <button class="btn-sec" onclick="addMasterInp('${p.id}','pi_${p.id}')">add</button>
         <button class="btn-sec" onclick="openPurashModal('${listKey}','${p.id}')">edit</button>
         <button class="btn-sec" onclick="duplicatePurashItem('${listKey}','${p.id}')">duplicate</button>
+        <button class="btn-sec" onclick="movePurashItem('${listKey}','${p.id}')">move to ${listKey==='special'?'Purashcharana':'Weekly special'}</button>
         <button class="btn-master-reset" onclick="resetAllTime('${p.id}','${p.planet} Purashcharana')">reset count</button>
         <button class="btn-master-reset" onclick="deletePurashItem('${listKey}','${p.id}','${p.planet} Purashcharana')">delete</button>
       </div>
@@ -1352,7 +1489,7 @@ function renderMaster(){
     const c=getTotal(m.id),p=pct(c,m.daily),th=pt(m.planet),pc=mpc(p);
     if(activeFilter==='All'&&m.planet!==prev){rows+=`<tr class="group-row"><td colspan="7">${m.planet}</td></tr>`;prev=m.planet;}
     rows+=`<tr${m.archived?' style="opacity:0.6"':''}>
-      <td>${m.name}${m.link?` <a href="${m.link}" target="_blank" rel="noopener" title="lyrics/video">&#128279;</a>`:''}${m.custom?' <span class="wk-m-tag">custom</span>':''}${m.archived?' <span class="wk-m-tag" style="color:#92400E;border-color:#FDE68A">archived — off daily grid</span>':''}</td>
+      <td>${m.name}${m.link?` <a href="${m.link}" target="_blank" rel="noopener" title="lyrics/video">&#128279;</a>`:''}${mantraPage(m)!=='daily'?' <span class="wk-m-tag">'+esc(pageName(mantraPage(m)))+'</span>':''}${m.custom?' <span class="wk-m-tag">custom</span>':''}${m.archived?' <span class="wk-m-tag" style="color:#92400E;border-color:#FDE68A">archived — off daily grid</span>':''}</td>
       <td><span class="badge" style="background:${th.bg};color:${th.text};border:1px solid ${th.border}">${m.planet}</span></td>
       <td>${m.days}</td><td>${m.daily}</td><td>${c.toLocaleString()}</td>
       <td><span class="mini-bar"><span class="mini-fill" style="width:${p}%;background:${pc}"></span></span><span style="font-size:11px;color:var(--text3);margin-left:6px">${p}%</span></td>
@@ -1362,6 +1499,7 @@ function renderMaster(){
         <button class="btn-sec" style="padding:3px 8px;font-size:11px" onclick="addMasterInp('${m.id}','ti_${m.id}')">add</button>
         <button class="btn-master-reset" onclick="resetAllTime('${m.id}','${m.name}')">reset all</button>
         <button class="btn-sec" style="padding:3px 8px;font-size:11px" onclick="openAddMantra('${m.id}')">edit</button>
+        <button class="btn-sec" style="padding:3px 8px;font-size:11px" onclick="openMoveModal('${m.id}')">move</button>
         <button class="btn-sec" style="padding:3px 8px;font-size:11px" onclick="duplicateMantra('${m.id}')">duplicate</button>
         ${m.archived?`<button class="btn-sec" style="padding:3px 8px;font-size:11px;background:#F0FDF4;border-color:#BBF7D0;color:#15803D" onclick="archiveMantra('${m.id}','${m.name}')">restore to daily</button>`:`<button class="btn-sec" style="padding:3px 8px;font-size:11px" onclick="archiveMantra('${m.id}','${m.name}')">remove from daily</button>`}
         <button class="btn-master-reset" onclick="deleteMantra('${m.id}','${m.name}')">delete</button>
@@ -1408,14 +1546,32 @@ function refresh(){
 }
 function showPage(p){
   commitPendingInput();
+  let domPage=p;
+  if(p==='daily'){currentGridPage='daily';}
+  else if(p.indexOf('grid:')===0){currentGridPage=p.slice(5);domPage='daily';}
+  currentPageKey=p;
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(el=>el.classList.remove('active'));
-  document.getElementById('page-'+p).classList.add('active');
-  document.querySelector('.nav-btn[data-page="'+p+'"]').classList.add('active');
+  document.getElementById('page-'+domPage).classList.add('active');
+  renderNav();
   refresh();
 }
+function buildReadableMonthly(){
+  const out=[];
+  const monthly=store.monthly||{};
+  Object.keys(monthly).forEach(k=>{
+    const m=k.match(/^monthly_(.+)_(\d{4})_(\d{2})$/);
+    if(!m)return;
+    const r=ritualsList().find(x=>x.id===m[1]);
+    out.push({ritual:r?r.title:m[1],month:MONTHS[parseInt(m[3],10)]+' '+m[2],count:monthly[k],key:k});
+  });
+  return out;
+}
 function exportData(){
-  const data=JSON.stringify(store,null,2);
+  const payload=Object.assign({},store,{
+    _exportInfo:{exportedAt:new Date().toISOString(),app:'mantra-tracker'},
+    _monthlyReadable:buildReadableMonthly()
+  });
+  const data=JSON.stringify(payload,null,2);
   const blob=new Blob([data],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -1431,10 +1587,13 @@ function importData(e){
   reader.onload=function(ev){
     try{
       const parsed=JSON.parse(ev.target.result);
-      if(!parsed.totals&&!parsed.days){alert('Invalid backup file.');return;}
+      const known=['totals','days','monthly','mantraList','purashList','specialList','ritualsList','pages'];
+      if(!parsed||typeof parsed!=='object'||!known.some(k=>parsed[k])){alert('Invalid backup file.');return;}
+      delete parsed._exportInfo;delete parsed._monthlyReadable;
       if(!confirm('This will replace ALL current data with the backup.\n\nAre you sure?'))return;
       store=parsed;
       migrateStore();
+      renderNav();
       refresh();
       alert('Data imported successfully.');
     }catch{alert('Could not read file. Make sure it is a valid backup JSON.');}
@@ -1443,7 +1602,7 @@ function importData(e){
   e.target.value='';
 }
 // wait for cloud data before first render
-store_loaded.then(()=>renderDaily());
+store_loaded.then(()=>{renderNav();renderDaily();});
 </script>
 </body>
 </html>
